@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <script defer src="/static/inai_web.js"></script>
+        <style>
+            body {
+                font-family: sans-serif;
+            }
+            #doc {
+                position: absolute;
+                width: 50%;
+                height: 50%;
+                top: 25%;
+                left: 25%;
+                border: 1pt solid slategrey;
+                padding: 16pt;
+                overflow-y: scroll;
+                box-shadow: 3pt 3pt 8pt slategrey;
+            }
+            #doc > button {
+                position: absolute;
+                right: 0pt;
+                top: 5pt;
+                border: none;
+                background: white;
+                font-size: 16pt;
+            }
+        </style>
+    </head>
+    <body token="{{token}}">
+        <h1>Welcome to Inai</h1>
+        <button id="sayit" inai_events="click" inai_target="/doc/g1">Greet me!</button>
+        <div id="g1" inai="greet">
+        </div>
+        <div id="gs" inai="gsignin"></div>
+        <div id="doc" style="display:none" inai="doc">
+            <button>✖️</button>
+            <section></section>
+        </div>
+    </body>
+</html>

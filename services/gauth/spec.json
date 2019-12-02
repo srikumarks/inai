@@ -1,0 +1,16 @@
+{
+  "name": "gauth",
+  "disabled": false,
+  "public": true,
+  "env": [
+    "server"
+  ],
+  "config": {
+    "client_id": "779071142308-op06j3setrqm1thbl9a61ah2dqig18qr.apps.googleusercontent.com",
+    "audience": [
+      "779071142308-g81oq6fosp0vriplv7hbeqpbolfk326i.apps.googleusercontent.com",
+      "779071142308-252q5rg9m8r43ha6518r4nsjf56qa1dk.apps.googleusercontent.com",
+      "779071142308-op06j3setrqm1thbl9a61ah2dqig18qr.apps.googleusercontent.com"
+    ]
+  }
+}

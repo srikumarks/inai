@@ -1,0 +1,29 @@
+{
+  "boot": [
+    {
+      "name": "codebase",
+      "codeId": "redis_codebase",
+      "disabled": false,
+      "public": false,
+      "env": [
+        "server"
+      ],
+      "config": {
+        "host": "127.0.0.1",
+        "port": 6380,
+        "keyspace": "/inai/codebase/"
+      }
+    }
+  ],
+  "start": [
+    "logger_server",
+    "kv",
+    "auth",
+    "gauth",
+    "server",
+    "doc",
+    "app",
+    "greet",
+    "gsignin"
+  ]
+}

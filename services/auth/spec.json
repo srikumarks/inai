@@ -1,0 +1,37 @@
+{
+  "name": "auth",
+  "disabled": false,
+  "public": false,
+  "env": [
+    "server"
+  ],
+  "config": {
+    "knownApps": {
+      "383289e466a4089e29cb": {
+        "secret": "de2c430f5ede0f4ce381af89af03227b75a1a9df",
+        "perms": {
+          "profile": "browser"
+        }
+      },
+      "d0cf803d412e2631c3f2": {
+        "secret": "8a4d08d231758b0e9cb1adb31e451f7d4e99a3c2",
+        "perms": {
+          "profile": "server"
+        }
+      },
+      "4c8f951af0b1e868ea87": {
+        "secret": "f59872a504a76df60b72a320592363303aea9b8c",
+        "perms": {
+          "profile": "admin"
+        }
+      },
+      "233908a1e0b607667243": {
+        "secret": "836127f789deb3ee956e5e8a39b3d2068cf07796",
+        "perms": {
+          "profile": "system"
+        }
+      }
+    },
+    "systemId": "233908a1e0b607667243"
+  }
+}

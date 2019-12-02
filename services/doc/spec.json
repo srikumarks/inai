@@ -1,0 +1,8 @@
+{
+  "name": "doc",
+  "disabled": false,
+  "public": true,
+  "env": [
+    "browser"
+  ]
+}

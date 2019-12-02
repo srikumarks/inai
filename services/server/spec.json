@@ -1,0 +1,8 @@
+{
+  "name": "server",
+  "disabled": true,
+  "public": true,
+  "env": [
+    "browser"
+  ]
+}
