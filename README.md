@@ -140,8 +140,11 @@ I.post = async function (name, resid, query, headers, body) {
    these will be actual http headers.
 5. `body` is the message body - usually text or JSON.
 
-Each such "service" also has a `spec.json` that describes how to load
-and boot the service and in what contexts.
+Each such "service" also has a `spec.json` (ex:
+[services/app/spec.json][sasj]) that describes how to load and boot the
+service and in what contexts.
+
+[sasj]: https://github.com/Imaginea/inai/blob/master/services/app/spec.json
 
 You can set the `I.boot` function to customize the component initialization,
 where the `body` argument will be the `spec.config` object. There is also
@@ -149,10 +152,10 @@ a corresponding `I.shutdown` function. Both are optional to implement.
 
 See the following for examples -
 
-1. `services/app` - server side
-2. `services/greet` - browser side
-3. `services/gauth` - server side
-4. `services/gsignin` - browser side
+1. [services/app](https://github.com/Imaginea/inai/blob/master/services/app) - server side
+2. [services/greet](https://github.com/Imaginea/inai/blob/master/services/greet) - browser side
+3. [services/gauth](https://github.com/Imaginea/inai/blob/master/services/gauth) - server side
+4. [services/gsignin](https://github.com/Imaginea/inai/blob/master/services/gsignin) - browser side
 
 ## Core services
 
@@ -162,7 +165,7 @@ Performs the function of name mapping so services can communicate with each
 other. The `_dns` is itself a service, which means you can live patch the DNS
 while the system is running. Usually you won't be dealing with this.
 
-See `network.js` for details.
+See [src/network.js][] for details.
 
 ### _services
 
@@ -170,7 +173,9 @@ This is a service used to instantiate other services on the node. Usually, you
 won't have to deal with this either, as all the code that needs this is already
 written for you.
 
-See `network.js` for details.
+See [src/network.js][] for details.
+
+[src/network.js]: https://github.com/Imaginea/inai/blob/master/src/network.js
 
 ### auth
 
@@ -195,9 +200,11 @@ done with tags like -
 <div id="meow" inai="greet"></div>
 ```
 
+(See [services/app/template.html](https://github.com/Imaginea/inai/blob/master/services/app/template.html))
+
 The `inai` attribute identifies the client-side codebase to be used to manage
 this DOM element. The client-side code will automatically see this and spawn
-the service for you and bind it to the element. Once bounds, the element will
+the service for you and bind it to the element. Once bound, the element will
 have a unique `inai_id` attribute which identifies the service it is bound to.
 
 If the element has an `id` attribute, then its value is used as the "domain
