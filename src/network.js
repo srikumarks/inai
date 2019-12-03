@@ -172,13 +172,13 @@ function createNode(options) {
     let dnsObj = Object.create(I);
     services.set('_dns', dnsObj);
     dnsObj._dns = dns;
-    dnsObj.get = async function (name, resid, query, headers) {
+    dnsObj.get = function (name, resid, query, headers) {
         let entry = dns.get(resid);
         if (!entry) { return not_found(); }
 
         return ok(entry); // This can be the address or meta data.
     };
-    dnsObj.put = async function (name, resid, query, headers, body) {
+    dnsObj.put = function (name, resid, query, headers, body) {
         if (/[/]_meta$/.test(resid)) {
             dns.set(resid, body);
             return ok();
@@ -212,7 +212,7 @@ function createNode(options) {
 
     const pathCodeInstances = /^[/]?([^/]+)[/]instances$/;
     
-    serviceObj.get = async function (name, resid, query, headers) {
+    serviceObj.get = function (name, resid, query, headers) {
         // Get all instances.
         if (resid === '/instances') {
             return ok(Array.from(services.keys()));
