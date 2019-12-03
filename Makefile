@@ -1,4 +1,4 @@
-
+$(shell mkdir -p workdir static)
 db := redis-cli -p 6380
 services := $(shell cat boot.json | jq -r '.start[]')
 service_bdeps := $(patsubst %,workdir/%.bdeps,$(services))
@@ -8,7 +8,11 @@ services_deployed := $(patsubst %,workdir/%.deployed,$(services))
 keyspace := $(shell cat boot.json | jq -r '.boot[0].config.keyspace')
 
 
-all: static/inai_web.js $(services_deployed) workdir/assets_deployed 
+all: workdir/.createdir static/inai_web.js $(services_deployed) workdir/assets_deployed 
+
+workdir/.createdir:
+	mkdir -p workdir
+	touch workdir/.createdir
 
 test:
 	@echo services = $(services)
@@ -18,8 +22,8 @@ test:
 	@echo services_deployed = $(services_deployed)
 	@echo keyspace = $(keyspace)
 
-static/inai_web.js: $(shell browserify --list client.js)
-	browserify client.js > $@
+static/inai_web.js: $(shell browserify --list src/client.js)
+	browserify src/client.js > $@
 
 include $(service_bdeps)
 
