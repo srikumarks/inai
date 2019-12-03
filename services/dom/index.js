@@ -5,7 +5,7 @@
 
 I.boot = function (name, resid, query, headers, body) {
 
-    let updateQueue = new Map();
+    let updateQueue = [];
     let ok = { status: 200 };
     let scheduledRender = null;
     let elcache = new Map();
@@ -87,14 +87,12 @@ I.boot = function (name, resid, query, headers, body) {
     function render(t) {
         scheduledRender = null;
         let curr = updateQueue;
-        updateQueue = new Map();
+        updateQueue = [];
 
         let mountQueue = [];
-        for (let [k,qs] of curr) {
-            for (let q of qs) {
-                let h = ophandlers[q.op];
-                if (h) { h(k, q, mountQueue); }
-            }
+        for (let [k,q] of curr) {
+            let h = ophandlers[q.op];
+            if (h) { h(k, q, mountQueue); }
         }
 
         for (let i of mountQueue) {
@@ -118,10 +116,7 @@ I.boot = function (name, resid, query, headers, body) {
     }
 
     I.post = function (name, resid, query, headers, body) {
-        let q = updateQueue.get(resid);
-        if (!q) { q = []; updateQueue.set(resid, q); }
-
-        q.push(body);
+        updateQueue.push([resid, body]);
         schedule();
         return ok;
     };
