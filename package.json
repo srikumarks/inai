@@ -10,7 +10,9 @@
     "showdown": "^1.9.1",
     "winston": "^3.2.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "browserify": "^16.5.0"
+  },
   "scripts": {
     "start": "node src/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
