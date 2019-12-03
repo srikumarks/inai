@@ -20,6 +20,7 @@
     "kv",
     "auth",
     "gauth",
+    "dom",
     "server",
     "doc",
     "app",

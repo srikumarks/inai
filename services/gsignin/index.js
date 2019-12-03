@@ -15,30 +15,33 @@ The job of the widget is sort of done once it is "booted".
 
 
 I.boot = async function (name, resid, query, headers, config) {
-    let selfElement = document.querySelector('[inai_id="' + I._self + '"]')
-
     // As per ref: https://developers.google.com/identity/sign-in/web/sign-in
 
     // Create the platform script element and insert it.
-    let platformScript = document.createElement('script');
-    platformScript.setAttribute('src', 'https://apis.google.com/js/platform.js');
-    platformScript.setAttribute('async', true);
-    platformScript.setAttribute('defer', true);
-    document.head.appendChild(platformScript);
+    I.dom('gsignin/platformScript', {
+        op: 'set',
+        tag: 'script',
+        attrs: { src: 'https://apis.google.com/js/platform.js', async: true, defer: true },
+        childOf: 'head'
+    });
 
     // Insert info about the client id
-    let meta = document.createElement('meta');
-    meta.setAttribute('name', 'google-signin-client_id');
-    meta.setAttribute('content', config.client_id);
-    document.head.appendChild(meta);
+    I.dom('gsignin/meta', {
+        op: 'set',
+        tag: 'meta',
+        attrs: { name: 'google-signin-client_id', content: config.client_id },
+        childOf: 'head'
+    });
 
     // Insert button
     // <div class="g-signin2" data-onsuccess="onSignIn"></div>
     let signinFnName = 'inai3_gsignin_onSignin';
-    let btn = document.createElement('div');
-    btn.setAttribute('class', 'g-signin2');
-    btn.setAttribute('data-onsuccess', signinFnName);
-    selfElement.appendChild(btn);
+    I.dom('gsignin/btn', {
+        op: 'set',
+        tag: 'div',
+        attrs: { "class": 'g-signin2', "data-onsuccess": signinFnName },
+        childOf: I._self
+    });
 
     window[signinFnName] = function (guser) {
         let profile = guser.getBasicProfile();
@@ -47,7 +50,7 @@ I.boot = async function (name, resid, query, headers, config) {
         console.log('Image URL: ' + profile.getImageUrl());
         console.log('Email: ' + profile.getEmail()); // This is null if the 'email' scope is not present.
 
-        // id_token must be used to validate login on the server.
+        // id_token must be used to validate login resid on the server.
         // https://developers.google.com/identity/sign-in/web/backend-auth
         let id_token = guser.getAuthResponse().id_token;
         console.log('id_token', id_token);
@@ -56,15 +59,26 @@ I.boot = async function (name, resid, query, headers, config) {
 
     // Add a signout button. Clicking will signout of the
     // app but not out of google.
-    let signout = document.createElement('a');
-    signout.setAttribute('href', '#');
-    signout.onclick = function inai3_gsignin_signOut() {
+    I.dom('gsignin/signout', {
+        op: 'set',
+        attrs: { href: '#' },
+        childOf: I._self
+    });
+    I.dom('gsignin/signout', {
+        op: 'event',
+        event: 'click',
+        service: 'gsignin',
+        verb: 'post',
+        resid: '/click'
+    });
+
+    I.post = async function (name, resid, query, headers, body) {
         let auth2 = gapi.auth2.getAuthInstance();
         auth2.signOut().then(function () {
             console.log('User signed out.');
         });
+        return { status: 200 };
     };
-    selfElement.appendChild(signout);
 
     // Can boot only once.
     I.boot = null;

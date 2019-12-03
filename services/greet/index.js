@@ -10,16 +10,13 @@ The message is independent of the contents of the posted
 request.
 `;
 
-let selfElement = null;
-
 // A silly demo "greet" service.
 I.boot = async function (name, resid, query, headers, config) {
-    let selfElement = document.querySelector('[inai_id="' + I._self + '"]');
-
     // POST /
     // will append a "Hello world" message to the div.
     I.post = async function (name, resid, query, headers, body) {
-        selfElement.innerHTML += "<p>[" + (++count) + "] Hello world!</p>";
+        let line = I._self + '/line';
+        I.dom(line, { op: 'set', tag: 'p', body: "[" + (++count) + "] Hello world!", childOf: I._self });
         return { status: 200 };
     };
     

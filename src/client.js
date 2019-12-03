@@ -11,6 +11,10 @@ const I = network.createNode({
     log: {requests: true, responses: true}
 });
 
+I.dom = function (resid, body) {
+    return I.network('dom', 'post', resid, null, null, body);
+};
+
 const token = document.body.getAttribute("token");
 const stdHeaders = new Headers();
 stdHeaders.append('Content-Type', 'application/json');
@@ -29,6 +33,9 @@ async function boot() {
 
     // Start the main gateway service.
     await setupService('server', uniqueID(), null, 'server', codeCache);
+    
+    // Start the DOM server.
+    await setupService('dom', uniqueID(), null, 'dom', codeCache);
 
     setupDOMObserver(codeCache);
 
