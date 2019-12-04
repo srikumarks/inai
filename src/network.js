@@ -109,7 +109,11 @@ function createNode(options) {
     // pfunc is a function that returns a promise, or, equivalently,
     // an async function that takes no arguments.
     function atomic(pfunc) {
-        atomicQueue.post(pfunc);
+        return new Promise((resolve, reject) => {
+            atomicQueue.post(() => {
+                return pfunc().then(resolve).catch(reject);
+            });
+        });
     }
 
     /**
