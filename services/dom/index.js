@@ -79,7 +79,7 @@ I.boot = function (name, resid, query, headers, body) {
         event: function (k, q, mountQueue) {
             let el = sel(q.sel, k);
             el.addEventListener(q.event, function (event) {
-                I.network(q.service, q.verb, q.resid + q.event, q.query, q.headers, event);
+                I.network(q.service, q.verb, q.resid, null, null, event);
             });
         }
     };

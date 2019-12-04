@@ -61,22 +61,27 @@ I.boot = async function (name, resid, query, headers, config) {
     // app but not out of google.
     I.dom('gsignin/signout', {
         op: 'set',
+        tag: 'button',
         attrs: { href: '#' },
+        body: "Signout",
         childOf: I._self
     });
+
     I.dom('gsignin/signout', {
         op: 'event',
         event: 'click',
-        service: 'gsignin',
+        service: I._self,
         verb: 'post',
-        resid: '/click'
+        resid: '/signout'
     });
 
     I.post = async function (name, resid, query, headers, body) {
-        let auth2 = gapi.auth2.getAuthInstance();
-        auth2.signOut().then(function () {
-            console.log('User signed out.');
-        });
+        if (resid === '/signout') {
+            let auth2 = gapi.auth2.getAuthInstance();
+            auth2.signOut().then(function () {
+                console.log('User signed out.');
+            });
+        }
         return { status: 200 };
     };
 

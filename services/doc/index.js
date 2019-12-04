@@ -7,7 +7,7 @@ let md = new showdown.Converter({headerLevelStart: 2});
 I.boot = async function (name, resid, query, headers, body) {
 
     I.post = async function (name, resid, query, headers, body) {
-        if (/^[/]event[/]click$/.test(resid)) {
+        if (resid === '/close') {
             return I.dom(I._self, { op: 'set', style: { display: 'none' }});
         } 
         let m = resid.match(/^[/]?([^/]+)$/);
@@ -33,7 +33,7 @@ I.boot = async function (name, resid, query, headers, body) {
         event: 'click',
         service: 'doc',
         verb: 'post',
-        resid: '/event/'
+        resid: '/close'
     });
     
     return { status: 200 };
