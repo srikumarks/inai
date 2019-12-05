@@ -1,0 +1,15 @@
+{
+  "name": "app",
+  "disabled": false,
+  "public": true,
+  "env": [
+    "server"
+  ],
+  "assets": {
+    "template.html": "template.html"
+  },
+  "dependencies": [
+    "greet",
+    "doc"
+  ]
+}

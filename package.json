@@ -1,0 +1,33 @@
+{
+  "name": "inai",
+  "version": "0.0.1",
+  "description": "An experiment in using REST principles within a server.",
+  "main": "src/server.js",
+  "dependencies": {
+    "express": "^4.17.1",
+    "google-auth-library": "^5.5.1",
+    "redis": "^2.8.0",
+    "showdown": "^1.9.1",
+    "winston": "^3.2.1"
+  },
+  "devDependencies": {
+    "browserify": "^16.5.0"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Imaginea/inai.git"
+  },
+  "keywords": [
+    "REST"
+  ],
+  "author": "Srikumar K. S. <sriku@imaginea.com>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Imaginea/inai/issues"
+  },
+  "homepage": "https://github.com/Imaginea/inai#readme"
+}

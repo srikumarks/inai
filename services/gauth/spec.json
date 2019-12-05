@@ -1,0 +1,16 @@
+{
+  "name": "gauth",
+  "disabled": false,
+  "public": true,
+  "env": [
+    "server"
+  ],
+  "config": {
+    "client_id": "$INAI_GAUTH_CLIENT",
+    "audience": [
+      "$INAI_GAUTH_AUDIENCE1",
+      "$INAI_GAUTH_AUDIENCE2",
+      "$INAI_GAUTH_AUDIENCE3"
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "dom",
+  "disabled": false,
+  "public": true,
+  "env": [
+    "browser"
+  ]
+}

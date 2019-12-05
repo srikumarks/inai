@@ -1,0 +1,37 @@
+{
+  "name": "auth",
+  "disabled": false,
+  "public": false,
+  "env": [
+    "server"
+  ],
+  "config": {
+    "knownApps": {
+      "$INAI_AUTH_BROWSER_ID": {
+        "secret": "$INAI_AUTH_BROWSER_SECRET",
+        "perms": {
+          "profile": "browser"
+        }
+      },
+      "$INAI_AUTH_SERVER_ID": {
+        "secret": "$INAI_AUTH_SERVER_SECRET",
+        "perms": {
+          "profile": "server"
+        }
+      },
+      "$INAI_AUTH_ADMIN_ID": {
+        "secret": "$INAI_AUTH_ADMIN_SECRET",
+        "perms": {
+          "profile": "admin"
+        }
+      },
+      "$INAI_AUTH_SYSTEM_ID": {
+        "secret": "$INAI_AUTH_SYSTEM_SECRET",
+        "perms": {
+          "profile": "system"
+        }
+      }
+    },
+    "systemId": "$INAI_AUTH_SYSTEM_ID"
+  }
+}

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <script defer src="/static/inai_web.js"></script>
+        <style>
+            #doc {
+                position: absolute;
+                width: 50%;
+                height: 50%;
+                top: 25%;
+                left: 25%;
+                overflow-y: scroll;
+            }
+            #doc > button {
+                position: absolute;
+                right: 0pt;
+                top: 5pt;
+            }
+        </style>
+        <script inai-args-for="gs" type="application/json">
+            { "buttonClass": "uk-button uk-button-primary" }
+        </script>
+    </head>
+    <body token="{{token}}" inai-boot="uikit">
+        <h1 class="uk-heading-small uk-margin">Welcome to Inai</h1>
+        <div uk-grid>
+            <button id="sayit" class="uk-button uk-button-primary" inai-events="click" inai-target="/doc/g1">Greet me!</button>
+            <div id="g1" inai="greet">
+            </div>
+            <div id="gs" inai="gsignin"></div>
+        </div>
+        <div id="doc" class="uk-card uk-card-default" style="display:none" inai="doc">
+            <button uk-close>️</button>
+            <section class="uk-card-body"></section>
+        </div>
+    </body>
+</html>

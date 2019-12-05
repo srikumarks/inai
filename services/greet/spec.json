@@ -1,0 +1,8 @@
+{
+  "name": "greet",
+  "disabled": false,
+  "public": true,
+  "env": [
+    "browser"
+  ]
+}
