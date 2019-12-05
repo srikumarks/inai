@@ -43,6 +43,7 @@ function createNode(options) {
     // network, or reserve that capability for a particular gateway
     // service on this node. We'll see as we go along.
     let I = { atomic: atomic, network: network, require: require, route: basicRouter };
+    let I_base = I;
 
     // DNS is currently simply a map of user-friendly names to 
     // service IDs ... which are hashes.
@@ -215,6 +216,7 @@ function createNode(options) {
     serviceObj._services = services;
 
     const pathCodeInstances = /^[/]?([^/]+)[/]instances$/;
+    const pathCodeSpecificInstance = /^[/]?([^/]+)[/]instances[/]([^/]+)$/;
     
     serviceObj.get = function (name, resid, query, headers) {
         // Get all instances.
@@ -254,21 +256,25 @@ function createNode(options) {
         let serviceDef = codeInfo.serviceDef;
 
         let id = (query && query.id) || null;
+        let I = I_base;
 
         if (id && services.has(id)) {
             // We're replacing an existing service. We'll have to
             // shutdown the existing one first.
             let old_I = services.get(id);
-            await I.network(id, 'shutdown', '/', null, null, null);
+            await serviceObj.network(name, 'delete', codeId + '/instances/' + id, null, null, null);
             if (query.retain_state) { I = old_I; }
-            services.delete(id);
         } else {
             id = id || random(8);
         }
 
         // Any existing service has shutdown now. We can safely create
         // the next one.
-        let I2 = Object.create(I);
+        //
+        // NOTE: If we create everytime, then we risk growing the prototype
+        // chain unboundedly.  So we need to create only when we're not
+        // replacing an existing service.
+        let I2 = (I === I_base ? Object.create(I) : I);
         I2._self = id;
         I2._code = codeId;
 
@@ -284,7 +290,7 @@ function createNode(options) {
         services.set(id, I2);
         codeInfo.instances.add(id);
 
-        let result = await I.network(id, 'boot', '/', null, null, body);
+        let result = await serviceObj.network(id, 'boot', '/', null, null, body);
         if (result.status !== 200) {
             return result;
         }
@@ -307,6 +313,26 @@ function createNode(options) {
         } catch (e) {
             return bad_request(e.toString());
         }
+    };
+
+    // Use DELETE <codeId>/instances/<id> to shut down a service.
+    serviceObj.delete = async function (name, resid, query, headers, body) {
+        let m = resid.match(pathCodeSpecificInstance);
+        if (!m || !codeBase.has(m[1])) {
+            return { status: 404, body: 'Not found' };
+        }
+
+        let codeId = m[1];
+        let id = m[2];
+        let codeInfo = codeBase.get(codeId);
+        if (codeInfo && codeInfo.instances.has(id)) {
+            await I.network(id, 'shutdown', '/', null, null, null);
+            codeInfo.instances.delete(id);
+            services.delete(id);
+            return ok();
+        }
+
+        return not_found();
     };
 
     return I;
