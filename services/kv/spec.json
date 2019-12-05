@@ -1,6 +1,6 @@
 {
   "name": "kv",
-  "disabled": true,
+  "disabled": false,
   "public": false,
   "env": [
     "server"

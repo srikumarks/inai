@@ -38,13 +38,29 @@ function redisop(redis, opname, args) {
 
 async function boot(args) {
 
+    let ok = { status: 200 };
+    let not_found = { status: 404, body: 'Not found' };
     let host = (args && args.host) || '127.0.0.1';
     let port = (args && args.port) || 6379;
     let keyspace = (args && args.keyspace) || '/inai/kv';
 
     let redis = I.require('redis').createClient({ host: host, port: port });
     let dbcall = redisop.bind(redis, redis);
-    let dbkey = (key) => { return keyspace + key; };
+    let dbkey = (branch, key) => { return (branch || '') + keyspace + key; };
+
+    // The idea of a "branch" is a separate keyspace that is layered
+    // on top of the existing keyspace so that the user gets to see
+    // merged values - with the values on the branch taking precedence
+    // over the values on the main trunk. When a user writes with a branch
+    // code, the value gets written to the branch, which means services
+    // which aren't aware of the branch will continue to see the base
+    // data.
+    //
+    // This can be useful to create a safe space for deploying code
+    // that can potentially modify the data in buggy ways. The idea is
+    // you can operate a service on a branch until you're satisfied and
+    // the merge the branch to the trunk when you're confident.
+    let branch = (headers) => { return (headers && headers['inai-branch']) || null; };
 
 
     // get /path1/path2/key1
@@ -58,10 +74,20 @@ async function boot(args) {
             }
             let key = name + '/' + resid;
             if (!permittedKey(key)) { throw "Bad key"; }
-            let str = await dbcall('get', [dbkey(key)]);
-            return { status: 200, body: JSON.parse(str) };
+            let br = branch(headers);
+            if (br) {
+                let txn = redis.multi();
+                txn.get(dbkey(br, key));
+                txn.get(dbkey(null, key));
+                let [cpstr, str] = await txnExec(txn);
+                if (str === null) { return not_found; }
+                return { status: 200, body: JSON.parse(cpstr === null ? str : cpstr) };
+            } else {
+                let str = await dbcall('get', [dbkey(null, key)]);
+                return { status: 200, body: JSON.parse(str) };
+            }
         } catch (e) {
-            return { status: 404, body: "No such key" };
+            return not_found;
         }
     };
 
@@ -69,7 +95,7 @@ async function boot(args) {
         try {
             let key = name + '/' + resid;
             if (!permittedKey(key)) { throw "Bad key"; }
-            await dbcall('set', [dbkey(key), JSON.stringify(body)]);
+            await dbcall('set', [dbkey(branch(headers), key), JSON.stringify(body)]);
             return { status: 200 };
         } catch (e) {
             return { status: 400, body: "Failed to set key" };
@@ -90,7 +116,7 @@ async function boot(args) {
     // end point ending in a '/' to have those subkeys
     // and their values added to it.
     I.post = async function (name, resid, query, headers, body) {
-        let base = name + '/' + resid;
+        let base = dbkey(branch(headers), name + '/' + resid);
         if (/[/]$/.test(resid) && permittedKey(base) && body && 'length' in body) {
             let txn = redis.multi();
             let failedKeys = [];
@@ -106,6 +132,44 @@ async function boot(args) {
         }
     };
 
+    // Use to delete a branch ... by sending DELETE to /_branch/<brid>
+    I.delete = async function (name, resid, query, headers, body) {
+        let br = resid.match(/^[/]_branch[/](.+)$/);
+        if (!br) { return not_found; }
+        let brid = br[1];
+
+        await I.atomic(async () => {
+            let keys = await dbcall('keys', dbkey(br, '*'));
+            let result = await dbcall('del', keys);
+            if (keys && (result !== keys.length)) {
+                throw new Error('Found ' + keys.length + ' keys but deleted only ' + result);
+            }
+        });
+
+        return ok;
+    };
+
+    // Use to merge a branch back to trunk by sending MERGE to /_branch/<brid>
+    // This is not a standard http verb, but we're only interested in REST, not HTTP.
+    I.merge = async function (name, resid, query, headers, body) {
+        let br = resid.match(/^[/]_branch[/](.+)$/);
+        if (!br) { return not_found; }
+        let brid = br[1];
+
+        await I.atomic(async () => {
+            let keys = await dbcall('keys', dbkey(br, '*'));
+            if (keys && keys.length > 0) {
+                let txn = redis.multi();
+                for (let i = 0; i < keys.length; ++i) {
+                    txn.rename(keys[i], keys[i].substring(br.length));
+                }
+                await txnExec(txn);
+            }
+        });
+
+        return ok;
+    };
+
     async function getPrefix(name, resid, query, headers) {
         if (/[*]/.test(resid)) {
             return { status: 400, body: "Can't use wild card in prefix search." };
@@ -115,6 +179,7 @@ async function boot(args) {
         if (!permittedKey(name + '/' + resid)) {
             throw "Bad key";
         }
+        let br = branch(headers);
         let prefixLen = keyPat.length - 1;
 
         // WARNING: This is a little dangerous in case the folks request
@@ -122,7 +187,7 @@ async function boot(args) {
         // bit by making the suffix pattern "/*". This gets us usual use
         // cases like getting all "fields" of a record or scanning a list
         // of items, without exposing a whole lot else.
-        let keys = await dbcall('keys', [dbkey(keyPat)]);
+        let keys = await dbcall('keys', [dbkey(null, keysPat)]);
 
         if (!keys) {
             throw "Not found";
@@ -135,11 +200,20 @@ async function boot(args) {
         let txn = redis.multi();
 
         for (let i = 0; i < keys.length; ++i) {
+            if (br) { txn.get(br + keys[i]) };
             txn.get(keys[i]);
         }
 
         let result = await txnExec(txn);
-        return result.map((v, i) => { return { k: keys[i].substring(prefixLen), v: JSON.parse(v.toString()) }; });
+        if (br) {
+            let merged = [];
+            for (let i = 0; i < result.length; i += 2) {
+                merged.push(result[i] !== null ? result[i] : result[i+1]);
+            }
+            return merged.map((v, i) => { return { k: keys[i].substring(prefixLen), v: JSON.parse(v.toString()) }; });
+        } else {
+            return result.map((v, i) => { return { k: keys[i].substring(prefixLen), v: JSON.parse(v.toString()) }; });
+        }
     }
 
     return { status: 200, body: "Started" };
