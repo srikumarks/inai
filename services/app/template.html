@@ -2,6 +2,7 @@
 <html>
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <script defer src="/static/inai_web.js"></script>
         <style>
             #doc {
@@ -19,20 +20,20 @@
             }
         </style>
         <script inai-args-for="gs" type="application/json">
-            { "buttonClass": "uk-button uk-button-primary" }
+            { "buttonClass": "button is-primary" }
         </script>
     </head>
-    <body token="{{token}}" inai-boot="uikit">
-        <h1 class="uk-heading-small uk-margin">Welcome to Inai</h1>
-        <div uk-grid>
-            <button id="sayit" class="uk-button uk-button-primary" inai-events="click" inai-target="/doc/g1">Greet me!</button>
-            <div id="g1" inai="greet">
-            </div>
-            <div id="gs" inai="gsignin"></div>
+    <body token="{{token}}" inai-boot="bulma">
+        <section class="hero is-medium is-primary is-bold">
+            <div class="container"><div class="hero-body"><h1 class="title">Welcome to Inai</h1></div></div>
+        </section>
+        <button id="sayit" class="button is-primary" inai-events="click" inai-target="/doc/g1">Greet me!</button>
+        <div id="g1" inai="greet">
         </div>
-        <div id="doc" class="uk-card uk-card-default" style="display:none" inai="doc">
-            <button uk-close>️</button>
-            <section class="uk-card-body"></section>
+        <div id="gs" inai="gsignin"></div>
+        <div id="doc" class="box" style="display:none" inai="doc">
+            <button class="delete">️</button>
+            <section></section>
         </div>
     </body>
 </html>
