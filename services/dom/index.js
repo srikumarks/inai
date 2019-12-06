@@ -27,15 +27,19 @@ I.boot = function (name, resid, query, headers, body) {
             switch (k) {
                 case 'head': el = docHead; break;
                 case 'body': el = docBody; break;
-                default:
-                    try { 
-                        let eli = document.querySelector('[inai-id="' + k + '"]');
-                        if (eli) {
-                            el = (f => { return f(eli, 0, 1); });
+                default: {
+                    let eli = '[inai-id="' + k + '"]';
+                    try {
+                        let q = document.querySelector(eli);
+                        if (q) {
+                            el = (f => f(document.querySelector(eli), 0, 1));
                         }
-                    } catch (e) {}
+                    } catch (e) { }
+                }
             }
-            if(el) { elcache.set(k, el); }
+            if (el) {
+                elcache.set(k, el);
+            }
         }
         return el;
     }
@@ -44,25 +48,19 @@ I.boot = function (name, resid, query, headers, body) {
         if (id) {
             let el = elem(id);
             if (!el) {
-                try { 
-                    let eli = document.querySelectorAll(id);
-                    if (eli && eli.length > 0) {
-                        if (eli.length === 1) {
-                            let eli0 = eli[0];
-                            el = (f => { return f(eli0, 0, 1); });
-                        } else {
-                            let eliarr = Array.from(eli);
-                            el = (f => {
-                                for (let k = 0; k < eliarr.length; ++k) {
-                                    f(eliarr[k], i, eliarr.length);
-                                }
-                                return true;
-                            });
-                        }
+                try {
+                    let q = document.querySelector(id);
+                    if (q) {
+                        el = (f => {
+                            let eli = document.querySelectorAll(id);
+                            for (let i = 0; i < eli.length; ++i) {
+                                f(eli[i], i, eli.length);
+                            }
+                        });
+                        elcache.set(id, el);
                     }
-                } catch (e) {}
-                if (el) {
-                    elcache.set(id, el);
+                } catch (e) {
+                    return elem(k);
                 }
             }
             return el;
