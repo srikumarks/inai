@@ -8,6 +8,10 @@
   "assets": {
     "template.html": "template.html"
   },
+  "config": {
+    "id": "$INAI_APP_ID",
+    "secret": "$INAI_APP_SECRET"
+  },
   "dependencies": [
     "greet",
     "doc"

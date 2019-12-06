@@ -6,10 +6,12 @@ let fs = I.require('fs');
 
 
 let crypto = I.require('crypto');
-let appId = "383289e466a4089e29cb";
-let appSecret = "de2c430f5ede0f4ce381af89af03227b75a1a9df";
 
-I.boot = async function (name, resid, query, headers, body) {
+I.boot = async function (name, resid, query, headers, config) {
+
+    let appId = config.id;
+    let appSecret = config.secret;
+
     I.get = async function (name, resid, query, headers) {
         let time = (await I.network('auth', 'get', '/time', null, null)).body;
         let parts = time.split(".");
