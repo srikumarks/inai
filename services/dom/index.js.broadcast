@@ -8,15 +8,6 @@ I.boot = function (name, resid, query, headers, body) {
     let updateQueue = [];
     let ok = { status: 200 };
     let scheduledRender = null;
-
-    // elcache stores a map from a name to a function that helps process
-    // elements. When that function is called with a function, then that
-    // function is applied to all the elements that the value stands for.
-    //
-    // That's confusing. So here's another attempt -
-    // elcache :: String -> ((Element -> int -> int -> Result) -> Result)
-    //
-    // That way, we can capture a "selection" to be acted upon.
     let elcache = new Map();
     let docHead = (f => f(document.head, 0, 1));
     let docBody = (f => f(document.body, 0, 1));
@@ -46,18 +37,18 @@ I.boot = function (name, resid, query, headers, body) {
             if (!el) {
                 try { 
                     let eli = document.querySelectorAll(id);
-                    if (eli && eli.length > 0) {
+                    if (eli) {
                         if (eli.length === 1) {
                             let eli0 = eli[0];
                             el = (f => { return f(eli0, 0, 1); });
                         } else {
                             let eliarr = Array.from(eli);
-                            el = (f => {
+                            el = (f) => {
                                 for (let k = 0; k < eliarr.length; ++k) {
                                     f(eliarr[k], i, eliarr.length);
                                 }
                                 return true;
-                            });
+                            };
                         }
                     }
                 } catch (e) {}
@@ -80,7 +71,7 @@ I.boot = function (name, resid, query, headers, body) {
             if (!el) {
                 let t = q.tag && document.createElement(q.tag);
                 if (t) {
-                    el = (f => f(t, 0, 1));
+                    el = (f => f(t));
                 }
             }
             if (!el) {
@@ -109,21 +100,25 @@ I.boot = function (name, resid, query, headers, body) {
             }
             if (q.childOf) {
                 el(e => {
-                    elem(q.childOf)(pi => mountQueue.push({ el: e, p: pi }));
+                    let pi = null;
+                    elem(q.childOf)(e => { pi = e; });
+                    mountQueue.push({ el: e, p: pi });
                 });
             } else if (q.before) {
                 el(e => {
-                    elem(q.before(bi => mountQueue.push({ el: e, b: bi })));
+                    let bi = null;
+                    elem(q.before)(e => { bi = e; });
+                    mountQueue.push({ el: e, b: bi });
                 });
             } else if (q.after) {
                 el(e => {
-                    elem(q.after)(ai => mountQueue.push({ el: e, a: ai }));
+                    let ai = null;
+                    elem(q.after)(e => { ai = e; });
+                    mountQueue.push({ el: e, a: ai });
                 });
-            } else {
+            } else if (!el.parentNode) {
                 el(e => {
-                    if (!e.parentNode) {
-                        mountQueue.push({ el: e, p: document.body });
-                    }
+                    mountQueue.push({ el: e, p: document.body });
                 });
             }
         },
