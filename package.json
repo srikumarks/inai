@@ -4,6 +4,7 @@
   "description": "An experiment in using REST principles within a server.",
   "main": "src/server.js",
   "dependencies": {
+    "bulma": "^0.8.0",
     "express": "^4.17.1",
     "google-auth-library": "^5.5.1",
     "redis": "^2.8.0",

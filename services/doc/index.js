@@ -17,7 +17,7 @@ I.boot = async function (name, resid, query, headers, body) {
         let doc = await I.network(service, 'get', '/_doc', null, null);
         if (doc.status >= 200 && doc.status < 300) {
             let html = md.makeHtml(doc.body);
-            I.dom('doc/section', {sel: 'section', op: 'set', body: html});
+            I.dom('doc/section', {sel: '#doc > section', op: 'set', body: html});
             I.dom(I._self, {op: 'set', style: { display: 'inherit' }});
             return { status: 200 };
         }
