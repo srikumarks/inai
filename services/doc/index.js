@@ -18,6 +18,7 @@ I.boot = async function (name, resid, query, headers, body) {
         if (doc.status >= 200 && doc.status < 300) {
             let html = md.makeHtml(doc.body);
             I.dom('doc/section', {sel: '#doc > section', op: 'set', body: html});
+            I.dom('doc/markdown/h', {sel: '#doc h2', op: 'set', attrs: { "class": "title is-2" }});
             I.dom(I._self, {op: 'set', style: { display: 'inherit' }});
             return { status: 200 };
         }
