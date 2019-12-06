@@ -9,8 +9,8 @@
     "template.html": "template.html"
   },
   "config": {
-    "id": "$INAI_APP_ID",
-    "secret": "$INAI_APP_SECRET"
+    "id": "$INAI_AUTH_BROWSER_ID",
+    "secret": "$INAI_AUTH_BROWSER_SECRET"
   },
   "dependencies": [
     "greet",
