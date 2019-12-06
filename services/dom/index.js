@@ -90,7 +90,30 @@ I.boot = function (name, resid, query, headers, body) {
                 el(e => {
                     for (let k in q.attrs) {
                         let v = q.attrs[k];
-                        e.setAttribute(k, v);
+                        if (v === false) {
+                            e.removeAttribute(k);
+                        } else {
+                            e.setAttribute(k, v);
+                        }
+                    }
+                });
+            }
+            if (q.classes) {
+                // The classes is a string consisting of
+                // space separated CSS class names. If a class
+                // name starts with an optional +, it is added
+                // to the list of classes. If it starts with
+                // a -, it is removed from the class list.
+                el(e => {
+                    let parts = q.classes.trim().split(/\s+/);
+                    for (let c of parts) {
+                        if (c[0] === '-') {
+                            e.classList.remove(c.substring(1));
+                        } else if (c[0] === '+') {
+                            e.classList.add(c.substring(1));
+                        } else {
+                            e.classList.add(c);
+                        }
                     }
                 });
             }
