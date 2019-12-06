@@ -116,7 +116,8 @@ function createNode(options) {
     function atomic(pfunc) {
         return new Promise((resolve, reject) => {
             atomicQueue.post(() => {
-                return pfunc().then(resolve).catch(reject);
+                let p = pfunc();
+                return (p && p.then ? p.then(resolve).catch(reject) : p);
             });
         });
     }
