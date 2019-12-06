@@ -210,25 +210,27 @@ function setupControl(control) {
         return;
     }
     let events = control.getAttribute('inai-events').split(/[,\s]+/);
-    let target = control.getAttribute('inai-target');
-    let pat = target.match(/^[/]?([^/]+)(.*)$/);
-    let service = pat[1];
-    let resid = pat[2];
-
-    // post_sync handlers should be ordinary functions that return a promise.
-    // This permits us to use this mechanism to take actions that are supposed
-    // to occur inside an event handler. If we break away into async mode, that
-    // won't hold. For example, if we need to create an AudioContext in response
-    // to an event, we need to do it in a sync handler. Under normal conditions,
-    // a service should implement async handlers only by default.
-    let verb = control.hasAttribute('inai-sync') ? 'post_sync' : 'post';
-
+ 
     let listener = function (ev) {
+        // WARNING: This could be made more efficient by caching the
+        // processed target and recomputing only on demand. Usually though,
+        // this is sufficient.
+        let target = control.getAttribute('inai-target');
+        let pat = target.match(/^[/]?([^/]+)(.*)$/);
+        let service = pat[1];
+        let resid = pat[2];
+
+        // post_sync handlers should be ordinary functions that return a promise.
+        // This permits us to use this mechanism to take actions that are supposed
+        // to occur inside an event handler. If we break away into async mode, that
+        // won't hold. For example, if we need to create an AudioContext in response
+        // to an event, we need to do it in a sync handler. Under normal conditions,
+        // a service should implement async handlers only by default.
+        let verb = control.hasAttribute('inai-sync') ? 'post_sync' : 'post';
         I.network(service, verb, resid, { event: ev.type }, null, ev);
     };
     control.inai_listener = listener;
     control.inai_events = events;
-    control.inai_target = target;
 
     for (let e of events) {
         control.addEventListener(e, listener);
