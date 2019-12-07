@@ -209,7 +209,23 @@ function setupControl(control) {
     if (!(control instanceof Element) || !control.hasAttribute('inai-target')) {
         return;
     }
-    let events = control.getAttribute('inai-events').split(/[,\s]+/);
+    let events = null;
+    let tagName = control.tagName.toLowerCase();
+    if (control.hasAttribute('inai-events')) {
+        // Support both comma and white space as separators for maximum flexibility.
+        events = control.getAttribute('inai-events').trim().split(/[,\s]+/);
+    } else if (tagName === 'button') {
+        // If the thing is a button, then even if inai-events
+        // is not specified, we can assume that the intention is
+        // to send click events to the given target.
+        events = ['click'];
+    } else if (/input|select|textarea/.test(tagName)) {
+        events = ['change'];
+    }
+    if (!events) {
+        console.error("Target mentioned for " + tagName + " but no events.")
+        return;
+    }
  
     let listener = function (ev) {
         // WARNING: This could be made more efficient by caching the
