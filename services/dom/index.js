@@ -9,11 +9,6 @@ I.boot = function (name, resid, query, headers, config) {
     let ok = { status: 200 };
     let scheduledRender = null;
 
-    // API: If you se the _log property on a service, you can control
-    // whether requests to the service will be logged or not.
-    // QUESTION: Does this break the abstraction barrier?
-    I._log = (config && ('log' in config)) ? config.log : false ; // Don't log DOM requests.
-
     // elcache stores a map from a name to a function that helps process
     // elements. When that function is called with a function, then that
     // function is applied to all the elements that the value stands for.
