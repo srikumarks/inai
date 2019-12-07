@@ -15,8 +15,7 @@ I.boot = async function (name, resid, query, headers, config) {
     // POST /
     // will append a "Hello world" message to the div.
     I.post = async function (name, resid, query, headers, body) {
-        let line = I._self + '/line';
-        I.dom(line, { op: 'set', tag: 'p', body: "[" + (++count) + "] Hello world!", childOf: I._self });
+        I.dom(I._self, { op: 'append', tag: 'p', body: "[" + (++count) + "] Hello world!", childOf: I._self });
         return { status: 200 };
     };
     
