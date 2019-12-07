@@ -3,11 +3,16 @@
 // Not sure of the performance implications, but would like
 // to see.
 
-I.boot = function (name, resid, query, headers, body) {
+I.boot = function (name, resid, query, headers, config) {
 
     let updateQueue = [];
     let ok = { status: 200 };
     let scheduledRender = null;
+
+    // API: If you se the _log property on a service, you can control
+    // whether requests to the service will be logged or not.
+    // QUESTION: Does this break the abstraction barrier?
+    I._log = (config && ('log' in config)) ? config.log : false ; // Don't log DOM requests.
 
     // elcache stores a map from a name to a function that helps process
     // elements. When that function is called with a function, then that
@@ -69,6 +74,74 @@ I.boot = function (name, resid, query, headers, body) {
         }
     }
 
+    function setProperties(el, q, mountQueue) {
+        if (!el || !q) { return; }
+        if (q.attrs) {
+            el(e => {
+                for (let k in q.attrs) {
+                    let v = q.attrs[k];
+                    if (v === false) {
+                        e.removeAttribute(k);
+                    } else {
+                        e.setAttribute(k, v);
+                    }
+                }
+            });
+        }
+        if (q.classes) {
+            // The classes is a string consisting of
+            // space separated CSS class names. If a class
+            // name starts with an optional +, it is added
+            // to the list of classes. If it starts with
+            // a -, it is removed from the class list.
+            el(e => {
+                let parts = q.classes.trim().split(/\s+/);
+                for (let c of parts) {
+                    if (c[0] === '-') {
+                        e.classList.remove(c.substring(1));
+                    } else if (c[0] === '+') {
+                        e.classList.add(c.substring(1));
+                    } else {
+                        e.classList.add(c);
+                    }
+                }
+            });
+        }
+        if (q.body) {
+            el(e => {
+                if (q.append) { e.innerHTML += q.body; }
+                else { e.innerHTML = q.body; }
+            });
+        }
+        if (q.style) {
+            el(e => {
+                for (let k in q.style) {
+                    let v = q.style[k];
+                    e.style[k] = v;
+                }
+            });
+        }
+        if (q.childOf) {
+            el(e => {
+                elem(q.childOf)(pi => mountQueue.push({ el: e, p: pi }));
+            });
+        } else if (q.before) {
+            el(e => {
+                elem(q.before(bi => mountQueue.push({ el: e, b: bi })));
+            });
+        } else if (q.after) {
+            el(e => {
+                elem(q.after)(ai => mountQueue.push({ el: e, a: ai }));
+            });
+        } else {
+            el(e => {
+                if (!e.parentNode) {
+                    mountQueue.push({ el: e, p: document.body });
+                }
+            });
+        }
+    }
+
     let ophandlers = {
         setattr: function (k, q, mountQueue) {
             sel(q.sel, k)(e => e.setAttribute(q.name, q.val));
@@ -86,67 +159,25 @@ I.boot = function (name, resid, query, headers, body) {
                 return;
             }
             elcache.set(k, el);
-            if (q.attrs) {
-                el(e => {
-                    for (let k in q.attrs) {
-                        let v = q.attrs[k];
-                        if (v === false) {
-                            e.removeAttribute(k);
-                        } else {
-                            e.setAttribute(k, v);
-                        }
-                    }
-                });
+            setProperties(el, q, mountQueue);
+        },
+        append: function (k, q, mountQueue) {
+            let el = sel(q.sel, k);
+            if (!el) {
+                console.error('dom/append: No parent to insert child into.');
+                return;
             }
-            if (q.classes) {
-                // The classes is a string consisting of
-                // space separated CSS class names. If a class
-                // name starts with an optional +, it is added
-                // to the list of classes. If it starts with
-                // a -, it is removed from the class list.
-                el(e => {
-                    let parts = q.classes.trim().split(/\s+/);
-                    for (let c of parts) {
-                        if (c[0] === '-') {
-                            e.classList.remove(c.substring(1));
-                        } else if (c[0] === '+') {
-                            e.classList.add(c.substring(1));
-                        } else {
-                            e.classList.add(c);
-                        }
-                    }
-                });
-            }
-            if (q.body) {
-                el(e => { e.innerHTML = q.body; });
-            }
-            if (q.style) {
-                el(e => {
-                    for (let k in q.style) {
-                        let v = q.style[k];
-                        e.style[k] = v;
-                    }
-                });
-            }
-            if (q.childOf) {
-                el(e => {
-                    elem(q.childOf)(pi => mountQueue.push({ el: e, p: pi }));
-                });
-            } else if (q.before) {
-                el(e => {
-                    elem(q.before(bi => mountQueue.push({ el: e, b: bi })));
-                });
-            } else if (q.after) {
-                el(e => {
-                    elem(q.after)(ai => mountQueue.push({ el: e, a: ai }));
-                });
-            } else {
-                el(e => {
-                    if (!e.parentNode) {
-                        mountQueue.push({ el: e, p: document.body });
-                    }
-                });
-            }
+            // This el stands for the parent. We should
+            // now append a new element to this identified
+            // parent.
+            el(e => {
+                let t = q.tag && document.createElement(q.tag);
+                if (!t) {
+                    console.error("dom/append: Don't know tag name to append.");
+                    return;
+                }
+                setProperties(f => f(t, 0, 1), q, mountQueue);
+            });
         },
         remove: function (k, q, mountQueue) {
             let el = sel(q.sel, k);
