@@ -4,36 +4,45 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script defer src="/static/inai_web.js"></script>
-        <style>
-            #doc {
-                position: absolute;
-                width: 50%;
-                height: 50%;
-                top: 25%;
-                left: 25%;
-                overflow-y: scroll;
-            }
-            #doc > button {
-                position: absolute;
-                right: 0pt;
-                top: 5pt;
-            }
-        </style>
-        <script inai-args-for="gs" type="application/json">
-            { "buttonClass": "button is-primary" }
-        </script>
     </head>
     <body token="{{token}}" inai-boot="bulma">
         <section class="hero is-medium is-primary is-bold">
-            <div class="container"><div class="hero-body"><h1 class="title">Welcome to Inai</h1></div></div>
+            <div class="container">
+                <div class="hero-body">
+                    <h1 class="title has-text-centered">Welcome to Inai</h1>
+                    <h2 class="subtitle has-text-centered">An always live app server</h1>
+                </div>
+            </div>
         </section>
-        <button id="sayit" class="button is-primary" inai-events="click" inai-target="/doc/g1">Greet me!</button>
-        <div id="g1" inai="greet">
+        <div class="section">
+            <div class="container is-centered">
+                <div class="columns">
+                    <div class="column">
+                        <div class="level">
+                            <button id="showdoc" class="level-left button is-info" inai-target="/doc/g1">Show doc</button>
+                            <button id="sayit" class="level-left button is-primary" inai-target="/g1">Greet me!</button>
+                        </div>
+                        <div class="level">
+                            <div id="gs" class="level-left" inai="gsignin"></div>
+                            <button id="gs-signout" class="level-left button is-primary" inai-target="/gs/signout">Signout</button>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div id="g1" inai="greet"></div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div id="gs" inai="gsignin"></div>
-        <div id="doc" class="box" style="display:none" inai="doc">
-            <button class="delete">️</button>
-            <section></section>
+        <div id="doc" class="modal" inai="doc">
+            <div class="modal-background"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title" id="doc-title"></p>
+                    <button class="delete" aria-label="close"></button>
+                </header>
+                <section class="modal-card-body" id="doc-body">
+                </section>
+            </div>
         </div>
     </body>
 </html>

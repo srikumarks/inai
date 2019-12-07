@@ -57,24 +57,6 @@ I.boot = async function (name, resid, query, headers, config) {
         return I.network('server', 'post', '/gauth/token_signin', null, null, id_token);
     };
 
-    // Add a signout button. Clicking will signout of the
-    // app but not out of google.
-    I.dom('gsignin/signout', {
-        op: 'set',
-        tag: 'button',
-        attrs: { href: '#', "class": (config && config.buttonClass) || '' },
-        body: "Signout",
-        after: I._self
-    });
-
-    I.dom('gsignin/signout', {
-        op: 'event',
-        event: 'click',
-        service: I._self,
-        verb: 'post',
-        resid: '/signout'
-    });
-
     I.post = async function (name, resid, query, headers, body) {
         if (resid === '/signout') {
             let auth2 = gapi.auth2.getAuthInstance();
