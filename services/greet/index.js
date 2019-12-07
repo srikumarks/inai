@@ -4,7 +4,7 @@ let count = 0;
 const _doc = `
 # Hello world greeting action
 
-When you post a message to \`/greet\`, it will append
+When you post a message to \`{{ref}}\`, it will append
 a "Hello world!" message to the div it is attached to.
 The message is independent of the contents of the posted
 request.
@@ -24,7 +24,7 @@ I.boot = async function (name, resid, query, headers, config) {
     // returns the documentation in the body text.
     I.get = async function (name, resid, query, headers) {
         if (resid === '/_doc') {
-            return { status: 200, headers: { 'content-type': 'text/markdown' }, body: _doc };
+            return { status: 200, headers: { 'content-type': 'text/markdown' }, body: _doc.replace('{{ref}}', name) };
         }
         return { status: 404, body: 'Not found' };
     };
