@@ -8,7 +8,7 @@ I.boot = async function (name, resid, query, headers, body) {
 
     I.post = async function (name, resid, query, headers, body) {
         if (resid === '/close') {
-            return I.dom(I._self, { op: 'set', style: { display: 'none' }});
+            return I.dom(I._self, { op: 'set', classes: "-is-active" });
         } 
         let m = resid.match(/^[/]?([^/]+)$/);
         if (!m) { return { status: 404, body: "Not found" }; }
@@ -17,9 +17,10 @@ I.boot = async function (name, resid, query, headers, body) {
         let doc = await I.network(service, 'get', '/_doc', null, null);
         if (doc.status >= 200 && doc.status < 300) {
             let html = md.makeHtml(doc.body);
-            I.dom('doc/section', {sel: '#doc > section', op: 'set', body: html});
+            I.dom('doc/title', {sel: '#doc #doc-title', op: 'set', body: "/doc/" + service});
+            I.dom('doc/body', {sel: '#doc #doc-body', op: 'set', body: html});
             I.dom('doc/markdown/h', {sel: '#doc h2', op: 'set', attrs: { "class": "title is-2" }});
-            I.dom(I._self, {op: 'set', style: { display: 'inherit' }});
+            I.dom(I._self, {op: 'set', classes: 'is-active'});
             return { status: 200 };
         }
 
@@ -27,9 +28,8 @@ I.boot = async function (name, resid, query, headers, body) {
     };
 
     let _selfsel = '[inai-id="' + I._self + '"]';
-    I.dom(I._self, {op: 'set', style: { display: 'none' }});
     I.dom(I._self + '/button', {
-        sel: _selfsel + ' > button',
+        sel: _selfsel + ' button',
         op: 'event',
         event: 'click',
         service: 'doc',
