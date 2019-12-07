@@ -103,7 +103,7 @@ function createNode(options) {
             try {
                 await func();
             } catch (e) {
-                logger.error(e);
+                logger.error("atomicQueue: " + e);
             }
         }
     })();
@@ -162,7 +162,7 @@ function createNode(options) {
             if (options.log.responses && canLog(service)) { logger.log('RES['+rid+']', 'v:'+verb, 'srv:'+service, 'res:'+resid, 'resp:'+JSON.stringify(result)); }
             return result;
         } catch (e) {
-            logger.error(e);
+            logger.error("network: " + e);
             return server_error(e.toString());
         }
     }

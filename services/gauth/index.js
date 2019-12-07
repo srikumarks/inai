@@ -42,7 +42,7 @@ I.boot = async function (name, resid, query, headers, config) {
                 iat: +payload.iat
             };
 
-            let result = await I.network('auth', 'post', '/user', null, null, { user: userProfile, token: token });
+            let result = await I.network('auth', 'post', '/user', null, headers, { user: userProfile, token: token });
             if (result.status !== 200) { return result; }
             return { status: 200 };
         }

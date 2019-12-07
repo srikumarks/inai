@@ -24,7 +24,7 @@ I.boot = async function (name, resid, query, headers, config) {
             salt: parts[0],
             time: parts[1],
             sig: sig
-        }, null, null)).body;
+        }, null, null)).body.token;
 
 
         // Get the asset ID - which will be a hash of the asset object.

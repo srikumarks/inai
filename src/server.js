@@ -79,7 +79,7 @@ app.get('/_codebase/:codeId', withAuth(async function (req, res) {
             return;
         }
     } catch (e) {
-        console.error(e.toString());
+        console.error("Couldn't fetch codebase " + codeId + " (" + e.toString() + ")");
         // No need to do anything. Basically, code not found.
     }
     res.status(404).send('Not found');
@@ -266,6 +266,7 @@ function resolveEnvVar(spec) {
             console.error("MISSING environment variable $" + varName);
             return match;
         }
+        console.log("Picked up env var $" + varName);
         return process.env[varName];
     });
     return JSON.parse(json);
@@ -281,7 +282,7 @@ async function bootService(spec) {
     await ensureCodeLoaded(codeId);
     let result = await I.network('_services', 'post', codeId + '/instances', null, null, args);
     if (result.status !== 200) {
-        console.error(JSON.stringify(result));
+        console.error("bootService: Couldn't do it - " + JSON.stringify(result));
         return null;
     }
     let serviceId = result.body;

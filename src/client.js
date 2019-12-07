@@ -192,7 +192,7 @@ async function setupService(inai_name, inai_id, codeId, codeCache) {
     
     let result = await I.network('_services', 'post', codeId + '/instances', { id: inai_id }, null, merged_args);
     if (result.status !== 200) { 
-        console.error(result);
+        console.error("Couldn't launch instance " + inai_id + " (" + JSON.stringify(result) + ")");
         return false;
     }
     let serviceId = result.body;

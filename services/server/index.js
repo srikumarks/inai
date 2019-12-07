@@ -23,6 +23,8 @@
             let service = parts[1];
             let serviceResId = parts[2];
             let auth = 'Bearer: ' + document.body.getAttribute('token');
+            if (!headers) { headers = {}; }
+            headers.authorization = auth;
             let response = await fetch(providerBaseURL + '/_proxy', {
                 method: 'POST',
                 headers: {
