@@ -1,0 +1,11 @@
+{
+  "name": "opencpu",
+  "disabled": false,
+  "public": true,
+  "env": [
+    "server"
+  ],
+  "config": {
+    "server": "http://localhost:5656/ocpu/library/"
+  }
+}
