@@ -43,10 +43,16 @@ async function boot(args) {
     let host = (args && args.host) || '127.0.0.1';
     let port = (args && args.port) || 6379;
     let keyspace = (args && args.keyspace) || '/inai/kv';
+    // The branch keyspace is a prefix pattern which must have
+    // one '*' in it which will be replaced with the branch
+    // name.
+    let branchKeyspace = (args && args.branchKeyspace) || keyspace.replace(/^[/]([^/]+)/, '/$1/b/*');
 
     let redis = I.require('redis').createClient({ host: host, port: port });
     let dbcall = redisop.bind(redis, redis);
-    let dbkey = (branch, key) => { return (branch || '') + keyspace + key; };
+    let dbkey = (branch, key) => {
+        return (branch ? branchKeyspace.replace('*',branch) : keyspace) + key;
+    };
 
     // The idea of a "branch" is a separate keyspace that is layered
     // on top of the existing keyspace so that the user gets to see

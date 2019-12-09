@@ -183,7 +183,7 @@ function bootFromSpec(bootSpec) {
         for (let service of bootSpec.start) {
             let spec = await I.network('_codebase', 'get', '/named/'+service, null, null);
             if (spec.status !== 200) {
-                console.error("Failed to boot service" + service);
+                console.error("Failed to boot service " + service);
                 continue;
             }
             spec = spec.body;

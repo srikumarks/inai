@@ -42,9 +42,8 @@ I.boot = async function (name, resid, query, headers, config) {
                 iat: +payload.iat
             };
 
-            let result = await I.network('auth', 'post', '/user', null, headers, { user: userProfile, token: token });
-            if (result.status !== 200) { return result; }
-            return { status: 200 };
+            // WARNING: Letting auth results leak to client?
+            return await I.network('auth', 'post', '/user', null, headers, { user: userProfile, token: token });
         }
 
         return { status: 404, body: 'Not found' };

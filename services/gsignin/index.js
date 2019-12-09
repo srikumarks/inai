@@ -43,7 +43,7 @@ I.boot = async function (name, resid, query, headers, config) {
         childOf: I._self
     });
 
-    window[signinFnName] = function (guser) {
+    window[signinFnName] = async function (guser) {
         let profile = guser.getBasicProfile();
         console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
         console.log('Name: ' + profile.getName());
@@ -54,7 +54,14 @@ I.boot = async function (name, resid, query, headers, config) {
         // https://developers.google.com/identity/sign-in/web/backend-auth
         let id_token = guser.getAuthResponse().id_token;
         console.log('id_token', id_token);
-        return I.network('server', 'post', '/gauth/token_signin', null, null, id_token);
+        let result = await I.network('server', 'post', '/gauth/token_signin', null, null, id_token);
+        if (result.status === 200) {
+            I.dom('body', {
+                op: 'set',
+                sel: 'body',
+                attrs: { token: result.body.token }
+            });
+        }
     };
 
     I.post = async function (name, resid, query, headers, body) {

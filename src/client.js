@@ -15,10 +15,13 @@ I.dom = function (resid, body) {
     return I.network('dom', 'post', resid, null, null, body);
 };
 
-const token = document.body.getAttribute("token");
-const stdHeaders = new Headers();
-stdHeaders.append('Content-Type', 'application/json');
-stdHeaders.append('Authorization', 'Bearer: ' + token);
+function stdHeaders() {
+    const headers = new Headers();
+    headers.append('Content-Type', 'application/json');
+    headers.append('Authorization', 'Bearer: ' + document.body.getAttribute("token"));
+    return headers;
+}
+
 const providerURLBase =  (function () {
     let base = document.location.origin + document.location.pathname;
     let parts = base.match(/^(.+)[/][^/]+$/);
@@ -150,7 +153,7 @@ async function setupService(inai_name, inai_id, codeId, codeCache) {
             // Load the code.
             let response = await fetch(providerURLBase + '/_codebase/' + codeId, {
                 method: 'GET',
-                headers: stdHeaders
+                headers: stdHeaders()
             });
             if (response.status !== 200) {
                 console.error("Couldn't load code [" + codeId + "]")
