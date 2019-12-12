@@ -56,10 +56,10 @@ async function boot(args) {
     let dynkeyspace = (branch) => branch ? branchKeyspace.replace('*', branch) : keyspace;
     let dbget = async (db, branch, key) => {
         if (branch) {
-            let vals = await Promise.all([
-                redisop(redis, 'get', [dynkeyspace(branch) + key]),
-                redisop(redis, 'get', [keyspace + key])
-            ]);
+            let txn = redis.multi();
+            txn.get(dynkeyspace(branch) + key);
+            txn.get(keyspace + key);
+            let vals = await txnExec(txn);
             return vals[0] || vals[1];
         } else {
             return await redisop(redis, 'get', [keyspace + key]);
