@@ -24,7 +24,7 @@ function txnExec(txn) {
 const rePermittedKey = /^[-a-zA-z0-9_/]+$/;
 
 function permittedKey(key) {
-    return rePermittedKey.rest(key);
+    return rePermittedKey.test(key);
 }
 
 function redisop(redis, opname, args) {
@@ -42,17 +42,24 @@ async function boot(args) {
     let not_found = { status: 404, body: 'Not found' };
     let host = (args && args.host) || '127.0.0.1';
     let port = (args && args.port) || 6379;
-    let keyspace = (args && args.keyspace) || '/inai/kv';
+    let keyspace = (args && args.keyspace) || '/inai/';
+
     // The branch keyspace is a prefix pattern which must have
     // one '*' in it which will be replaced with the branch
     // name.
     let branchKeyspace = (args && args.branchKeyspace) || keyspace.replace(/^[/]([^/]+)/, '/$1/b/*');
 
+    // TODO: Use different connections for read and write. That will
+    // help when we want to direct writes to the master and reads to
+    // a cache replica.
     let redis = I.require('redis').createClient({ host: host, port: port });
     let dbcall = redisop.bind(redis, redis);
     let dbkey = (branch, key) => {
         return (branch ? branchKeyspace.replace('*',branch) : keyspace) + key;
     };
+    let userkey = (service, resid) => {
+        return service + (resid[0] === '/' ? '' : '/') + resid;
+    }
 
     // The idea of a "branch" is a separate keyspace that is layered
     // on top of the existing keyspace so that the user gets to see
@@ -78,7 +85,7 @@ async function boot(args) {
             if (query && query.prefix) {
                 return { status: 200, body: await getPrefix(name, resid, query, headers) };
             }
-            let key = name + '/' + resid;
+            let key = userkey(name, resid);
             if (!permittedKey(key)) { throw "Bad key"; }
             let br = branch(headers);
             if (br) {
@@ -99,7 +106,7 @@ async function boot(args) {
 
     I.put = async function (name, resid, query, headers, body) {
         try {
-            let key = name + '/' + resid;
+            let key = userkey(name, resid);
             if (!permittedKey(key)) { throw "Bad key"; }
             await dbcall('set', [dbkey(branch(headers), key), JSON.stringify(body)]);
             return { status: 200 };
@@ -122,7 +129,7 @@ async function boot(args) {
     // end point ending in a '/' to have those subkeys
     // and their values added to it.
     I.post = async function (name, resid, query, headers, body) {
-        let base = dbkey(branch(headers), name + '/' + resid);
+        let base = dbkey(branch(headers), userkey(name, resid));
         if (/[/]$/.test(resid) && permittedKey(base) && body && 'length' in body) {
             let txn = redis.multi();
             let failedKeys = [];
@@ -145,7 +152,7 @@ async function boot(args) {
         let brid = br[1];
 
         await I.atomic(async () => {
-            let keys = await dbcall('keys', dbkey(br, '*'));
+            let keys = await dbcall('keys', dbkey(brid, '*'));
             let result = await dbcall('del', keys);
             if (keys && (result !== keys.length)) {
                 throw new Error('Found ' + keys.length + ' keys but deleted only ' + result);
@@ -163,11 +170,11 @@ async function boot(args) {
         let brid = br[1];
 
         await I.atomic(async () => {
-            let keys = await dbcall('keys', dbkey(br, '*'));
+            let keys = await dbcall('keys', dbkey(brid, '*'));
             if (keys && keys.length > 0) {
                 let txn = redis.multi();
                 for (let i = 0; i < keys.length; ++i) {
-                    txn.rename(keys[i], keys[i].substring(br.length));
+                    txn.rename(keys[i], keys[i].substring(brid.length));
                 }
                 await txnExec(txn);
             }
@@ -181,8 +188,8 @@ async function boot(args) {
             return { status: 400, body: "Can't use wild card in prefix search." };
         }
 
-        let keyPat = name + (resid[0] == '/' ? resid : '/' + resid) + '/*';
-        if (!permittedKey(name + '/' + resid)) {
+        let keyPat = userkey(name, resid) + '/*';
+        if (!permittedKey(userkey(name, resid))) {
             throw "Bad key";
         }
         let br = branch(headers);
