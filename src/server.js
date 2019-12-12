@@ -38,6 +38,9 @@ function withAuth(fn) {
         let auth = await I.network('auth', 'post', '/check', null, req.headers, null);
         if (auth.status !== 200) { return sendReply(res, auth); }
         req.auth = auth.body;
+        if (req.auth.branch) {
+            req.headers['inai-branch'] = req.auth.branch;
+        }
         return fn(req, res, next).catch((err) => { res.status(503).send(err.toString()); });
     };
 }
@@ -54,6 +57,14 @@ function onlyLocalhost(fn) {
     };
 }
 
+function maybeBranch(req) {
+    // WARNING: Only accept branches authorized for access.
+    // Don't just take on any branch value specified in
+    // the inai-branch HTTP header. The `.auth` property
+    // is added by the authentication middleware.
+    let br = (req.auth && req.auth.branch);
+    return br ? { 'inai-branch': br } : null;
+}
 
 // Use to fetch code of a component given its name id.
 // The code text is returned in the body of the request, but
@@ -63,14 +74,14 @@ function onlyLocalhost(fn) {
 app.get('/_codebase/:codeId', withAuth(async function (req, res) {
     let codeId = req.params.codeId;
     try {
-        let result = await I.network('_codebase', 'get', '/named/' + codeId, null, null);
+        let result = await I.network('_codebase', 'get', '/named/' + codeId, null, maybeBranch(req));
         if (result.status !== 200) {
             sendReply(res, result);
             return;
         }
         let spec = result.body;
         if (isForProfile(spec, req.auth.profile)) {
-            let code = (await I.network('_codebase', 'get', '/code/' + spec.codeId, null, null)).body;
+            let code = (await I.network('_codebase', 'get', '/code/' + spec.codeId, null, maybeBranch(req))).body;
             res.set('content-type', 'text/plain');
             if (spec.config) {
                 res.set('inai-args', encodeURIComponent(JSON.stringify(spec.config)));
@@ -87,41 +98,41 @@ app.get('/_codebase/:codeId', withAuth(async function (req, res) {
 
 // See redis_codebase service.
 app.put(/[/]_codebase[/]code[/]([^/]+)$/, onlyLocalhost(async function (req, res) {
-    await I.network('_codebase', 'put', '/code/' + req.params[0], null, req.headers, req.body);
+    await I.network('_codebase', 'put', '/code/' + req.params[0], null, maybeBranch(req), req.body);
     res.status(200).send('ok');
 }));
 
 app.put(/[/]_codebase[/]meta[/]([^/]+)$/, onlyLocalhost(async function (req, res) {
-    await I.network('_codebase', 'put', '/meta/' + req.params[0], null, req.headers, req.body);
+    await I.network('_codebase', 'put', '/meta/' + req.params[0], null, maybeBranch(req), req.body);
     res.status(200).send('ok');
 }));
 
 app.put(/[/]_codebase[/]assets[/]([^/]+)$/, onlyLocalhost(async function (req, res) {
-    await I.network('_codebase', 'put', '/assets/' + req.params[0], null, req.headers, req.body);
+    await I.network('_codebase', 'put', '/assets/' + req.params[0], null, maybeBranch(req), req.body);
     res.status(200).send('ok');
 }));
 
 app.put(/[/]_codebase[/]named[/](.+)$/, onlyLocalhost(async function (req, res) {
-    await I.network('_codebase', 'put', '/named/' + req.params[0], null, req.headers, req.body);
+    await I.network('_codebase', 'put', '/named/' + req.params[0], null, maybeBranch(req), req.body);
     res.status(200).send('ok');
 }));
 
 // Localhosts can query the DNS.
 app.get('/_dns/:name', onlyLocalhost(async function (req, res) {
-    let reply = await I.network('_dns', 'get', req.params.name, null, null);
+    let reply = await I.network('_dns', 'get', req.params.name, null, maybeBranch(req));
     sendReply(res, reply);
 }));
 
 // Localhosts can get component documentation.
 app.get('/_doc/:name', onlyLocalhost(async function (req, res) {
-    sendReply(res, await I.network(req.params.name, 'get', '/_doc', null, null));
+    sendReply(res, await I.network(req.params.name, 'get', '/_doc', null, maybeBranch(req)));
 }));
 
 // Localhosts can switch components.
 app.put('/_dns/:name', onlyLocalhost(async function (req, res) {
     try {
         let name = req.params.name;
-        let reply = await I.network('_dns', 'put', name, null, null, req.body);
+        let reply = await I.network('_dns', 'put', name, null, maybeBranch(req), req.body);
         if (reply.status === 200) {
             res.status(200).send();
         } else {
@@ -134,7 +145,7 @@ app.put('/_dns/:name', onlyLocalhost(async function (req, res) {
 
 // Permit a custom boot sequence at any time from localhost.
 app.post('/_boot', onlyLocalhost(async function (req, res) {
-    await bootFromSpec(req.body);
+    await bootFromSpec(branch, req.body);
     res.json(true);
 }));
 
@@ -143,7 +154,7 @@ app.post('/_boot', onlyLocalhost(async function (req, res) {
 // at individual services. This end point is protected to be localhost
 // only so that random entities cannot modify configuration information.
 app.put('/:serviceId/_config/:key', onlyLocalhost(async function (req, res) {
-    sendReply(res, await I.network(serviceId, 'put', '/_config/' + key, null, null, req.body));
+    sendReply(res, await I.network(serviceId, 'put', '/_config/' + key, null, maybeBranch(req), req.body));
 }));
 
 // An end point which can proxy requests on behalf of clients.
@@ -157,11 +168,21 @@ app.post('/:serviceId/_proxy', withAuth(async function (req, res) {
         perms = (req.auth.services && req.auth.services[json.name]); // It has permissions to access the service.
     }
     if (!perms) {
-        let spec = (await I.network('_codebase', 'get', '/named/' + json.name, null, null)).body;
+        let spec = (await I.network('_codebase', 'get', '/named/' + json.name, null, maybeBranch(req))).body;
         perms = spec.public; // The service is public.
     }
 
     if (perms) {
+        // Pass on the branch in a header so that the services
+        // will know that we're operating in a branch of the
+        // system and they can choose to maintain separate state
+        // per branch.
+        if (req.auth.branch) {
+            if (!json.headers) {
+                json.headers = {};
+            }
+            json.headers['inai-branch'] = req.auth.branch;
+        }
         let reply = await I.network(json.name, json.verb, json.resid, json.query, json.headers, json.body);
         res.json(reply);
     } else {
@@ -172,16 +193,18 @@ app.post('/:serviceId/_proxy', withAuth(async function (req, res) {
 // See boot.json file.
 async function boot(bootFile) {
     let bootSpec = JSON.parse(fs.readFileSync(bootFile, 'utf8'));
-    await bootCodebaseService('redis_codebase', bootSpec.boot[0].config);
-    await bootFromSpec(bootSpec);
+    await bootCodebaseService(null, 'redis_codebase', bootSpec.boot[0].config);
+    await bootFromSpec(null, bootSpec);
     installPublicHandler();
     start();
 }
 
-function bootFromSpec(bootSpec) {
+function bootFromSpec(branch, bootSpec) {
+    let brh = br_header(branch);
+
     return new Promise(async (resolve, reject) => {
         for (let service of bootSpec.start) {
-            let spec = await I.network('_codebase', 'get', '/named/'+service, null, null);
+            let spec = await I.network('_codebase', 'get', '/named/'+service, null, brh);
             if (spec.status !== 200) {
                 console.error("Failed to boot service " + service);
                 continue;
@@ -191,7 +214,7 @@ function bootFromSpec(bootSpec) {
                 console.log("Skipping", spec.name);
             } else {
                 I.atomic(() => {
-                    return bootService(spec);
+                    return bootService(branch, spec);
                 });
             }
         }
@@ -208,7 +231,7 @@ function installPublicHandler() {
         let serviceName = m[1];
         let resid = m[2];
         let method = req.method.toLowerCase();
-        let spec = await I.network('_dns', 'get', serviceName + '/_meta', null, null);
+        let spec = await I.network('_dns', 'get', serviceName + '/_meta', null, maybeBranch(req));
         if (spec.status !== 200) {
             console.error("Failed to get meta data of " + serviceName);
             sendReply(res, spec);
@@ -240,7 +263,11 @@ function start() {
     });
 }
 
-async function ensureCodeLoaded(codeId) {
+function br_header(branch) {
+    return branch ? { 'inai-branch': branch } : null;
+}
+
+async function ensureCodeLoaded(branch, codeId) {
     // WARNING: This is currently very inefficient. The code being
     // referred to will be loaded every time. That means a fetch from
     // the DB and a compilation. This is unnecessary and ideally if the
@@ -248,10 +275,10 @@ async function ensureCodeLoaded(codeId) {
     //
     // This is alleviated by the fact that we watch for REDIS keyspace
     // events and load code when changes occur.
-    let result = await I.network('_codebase', 'get', '/code/' + codeId, null, null);
+    let result = await I.network('_codebase', 'get', '/code/' + codeId, null, br_header(branch));
     if (result.status !== 200) { throw result; }
     let code = result.body;
-    await I.network('_services', 'put', codeId, null, null, code);
+    await I.network('_services', 'put', codeId, null, br_header(branch), code);
     return true;
 }
 
@@ -273,23 +300,24 @@ function resolveEnvVar(spec) {
 }
 
 // Boots a service and maps its name to the booted service id.
-async function bootService(spec) {
+async function bootService(branch, spec) {
+    let brh = br_header(branch);
     spec = resolveEnvVar(spec);
     let name = spec.name;
     let codeId = spec.codeId;
     let args = spec.config;
     console.log("Booting " + (name || codeId) + " ... ");
-    await ensureCodeLoaded(codeId);
-    let result = await I.network('_services', 'post', codeId + '/instances', null, null, args);
+    await ensureCodeLoaded(branch, codeId);
+    let result = await I.network('_services', 'post', codeId + '/instances', null, brh, args);
     if (result.status !== 200) {
         console.error("bootService: Couldn't do it - " + JSON.stringify(result));
         return null;
     }
     let serviceId = result.body;
     if (name) {
-        await I.network('_dns', 'put', name + '/_meta', null, null, spec);
-        await I.network('_dns', 'put', serviceId + '/_meta', null, null, spec);
-        await I.network('_dns', 'put', name, null, null, serviceId);
+        await I.network('_dns', 'put', name + '/_meta', null, brh, spec);
+        await I.network('_dns', 'put', serviceId + '/_meta', null, brh, spec);
+        await I.network('_dns', 'put', name, null, brh, serviceId);
     }
     console.log("... booted " + name + " [" + serviceId + "]");
     return serviceId;
@@ -298,14 +326,15 @@ async function bootService(spec) {
 // The redis_codebase service is currently special. I want to make it
 // generic, but I can't work that in because I need the codebase
 // server to load its own codebase then!
-async function bootCodebaseService(codeId, config) {
+async function bootCodebaseService(branch, codeId, config) {
+    let brh = br_header(branch);
     let src = fs.readFileSync('./services/' + codeId + '/index.js', 'utf8');
     let name = '_codebase';
-    await I.network('_services', 'put', name, null, null, src);
-    let result = await I.network('_services', 'post', name + '/instances', null, null, config);
+    await I.network('_services', 'put', name, null, brh, src);
+    let result = await I.network('_services', 'post', name + '/instances', null, brh, config);
     if (result.status !== 200) { throw result; }
     let serviceId = result.body;
-    await I.network('_dns', 'put', '_codebase', null, null, serviceId);
+    await I.network('_dns', 'put', '_codebase', null, brh, serviceId);
     return '_codebase';
 }
 

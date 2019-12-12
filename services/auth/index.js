@@ -229,12 +229,13 @@ I.boot = async function (name, resid, query, headers, config) {
                 let userTokenPrefix = [userid, info.app, newSalt(), Date.now()].join('.');
                 let userTokenSig = hmac(knownApps[kSystemId].secret, userTokenPrefix);
                 let userToken = userTokenPrefix + '.' + userTokenSig;
-                knownUsers[userid] = {
-                    id: userid,
-                    user: user,
-                    token: token,
-                    userToken: userToken
-                };
+                let userRec = knownUsers[userid] || {};
+                userRec.id = userid;
+                userRec.user = user;
+                userRec.token = token;
+                userRec.userToken = userToken;
+                userRec.branches = userRec.branches || {};
+                knownUsers[userid] = userRec;
                 return {
                     status: 200,
                     body: {
@@ -246,11 +247,18 @@ I.boot = async function (name, resid, query, headers, config) {
             }
             case '/branch': {
                 let info = validatedTokenInfo(unpackAuthToken(headers && headers.authorization));
-                if (!info || !info.user) { return { status: 401, body: 'Unauthorized' }; }
+                if (!info || !info.user || !knownUsers[info.user]) { return { status: 401, body: 'Unauthorized' }; }
                 let branch = newBranch(knownApps[kSystemId].secret, info.user);
                 let tokenPrefix = [branch, info.user, info.app, newSalt(), Date.now()].join('.');
                 let tokenSig = hmac(knownApps[kSystemId].secret, tokenPrefix);
                 let token = tokenPrefix + '.' + tokenSig;
+                knownUsers[info.user].branches[branch] = {
+                    is_creator: true,
+                    read: true,
+                    write: true,
+                    delete: true,
+                    share: true
+                };
                 return {
                     status: 200,
                     body: {
