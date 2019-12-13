@@ -42,6 +42,8 @@ async function boot(args) {
     let not_found = { status: 404, body: 'Not found' };
     let host = (args && args.host) || '127.0.0.1';
     let port = (args && args.port) || 6379;
+    let write_host = (args && args.write_host) || host;
+    let write_port = (args && args.write_port) || port;
     let keyspace = (args && args.keyspace) || '/inai/';
 
     // The branch keyspace is a prefix pattern which must have
@@ -49,11 +51,17 @@ async function boot(args) {
     // name.
     let branchKeyspace = (args && args.branchKeyspace) || keyspace.replace(/^[/]([^/]+)/, '/$1/b/*');
 
-    // TODO: Use different connections for read and write. That will
+    // Ensure that the keyspaces terminate in '/'
+    if (!/[/]$/.test(keyspace)) { keyspace += '/' }
+    if (!/[/]$/.test(branchKeyspace)) { branchKeyspace += '/' }
+
+    // Use different connections for read and write. That will
     // help when we want to direct writes to the master and reads to
-    // a cache replica.
+    // a live replica.
     let redis = I.require('redis').createClient({ host: host, port: port });
+    let write_redis = I.require('redis').createClient({ host: write_host, port: write_port });
     let dbcall = redisop.bind(redis, redis);
+    let wdbcall = redisop.bind(write_redis, write_redis);
     let dbkey = (branch, key) => {
         return (branch ? branchKeyspace.replace('*',branch) : keyspace) + key;
     };
@@ -108,7 +116,7 @@ async function boot(args) {
         try {
             let key = userkey(name, resid);
             if (!permittedKey(key)) { throw "Bad key"; }
-            await dbcall('set', [dbkey(branch(headers), key), JSON.stringify(body)]);
+            await wdbcall('set', [dbkey(branch(headers), key), JSON.stringify(body)]);
             return { status: 200 };
         } catch (e) {
             return { status: 400, body: "Failed to set key" };
@@ -117,6 +125,7 @@ async function boot(args) {
 
     I.shutdown = async function (name, resid, query, headers, body) {
         redis.end(true);
+        write_redis.end(true);
         I.get = undefined;
         I.put = undefined;
         I.post = undefined;
@@ -145,15 +154,16 @@ async function boot(args) {
         }
     };
 
-    // Use to delete a branch ... by sending DELETE to /_branch/<brid>
+    // Use to delete a branch ... by sending DELETE to /_branch/<brid>/<brns>
     I.delete = async function (name, resid, query, headers, body) {
-        let br = resid.match(/^[/]_branch[/](.+)$/);
+        let br = resid.match(/^[/]_branch[/]([^/]+)[/]([^/]+)$/);
         if (!br) { return not_found; }
         let brid = br[1];
+        let brns = br[2];
 
         await I.atomic(async () => {
-            let keys = await dbcall('keys', dbkey(brid, '*'));
-            let result = await dbcall('del', keys);
+            let keys = await dbcall('keys', dbkey(brid, brns + '/*'));
+            let result = await wdbcall('del', keys);
             if (keys && (result !== keys.length)) {
                 throw new Error('Found ' + keys.length + ' keys but deleted only ' + result);
             }
@@ -165,16 +175,17 @@ async function boot(args) {
     // Use to merge a branch back to trunk by sending MERGE to /_branch/<brid>
     // This is not a standard http verb, but we're only interested in REST, not HTTP.
     I.merge = async function (name, resid, query, headers, body) {
-        let br = resid.match(/^[/]_branch[/](.+)$/);
+        let br = resid.match(/^[/]_branch[/]([^/]+)[/]([^/]+)$/);
         if (!br) { return not_found; }
         let brid = br[1];
+        let brns = br[2];
 
         await I.atomic(async () => {
-            let keys = await dbcall('keys', dbkey(brid, '*'));
+            let keys = await dbcall('keys', dbkey(brid, brns + '/*'));
             if (keys && keys.length > 0) {
                 let txn = redis.multi();
                 for (let i = 0; i < keys.length; ++i) {
-                    txn.rename(keys[i], keys[i].substring(brid.length));
+                    txn.rename(keys[i], keys[i].replace("/b/"+brid+"/"+brns, "/"+brns));
                 }
                 await txnExec(txn);
             }
