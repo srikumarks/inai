@@ -43,7 +43,7 @@ I.boot = async function (name, resid, query, headers, config) {
             };
 
             // WARNING: Letting auth results leak to client?
-            return await I.network('auth', 'post', '/user', null, headers, { user: userProfile, token: token });
+            return await I.network('auth', 'post', '/users', null, headers, { user: userProfile, token: token });
         }
 
         return { status: 404, body: 'Not found' };

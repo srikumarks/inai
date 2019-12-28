@@ -47,9 +47,77 @@ I.boot = async function (name, resid, query, headers, config) {
     let knownApps = config.knownApps;
     let kSystemId = config.systemId;
     let knownUsers = {};
+    let knownGroups = {};
 
     I.token_expiry_ms = 5 * 60 * 1000; // 5 minutes.
     I.earliest_renew_time_ms = 0;
+    I.user_cache_period_ms = 2 * 60 * 1000; // 2 minutes;
+    I.group_cache_period_ms = 15 * 60 * 1000; // 2 minutes;
+
+    async function getKnownUser(id) {
+        let rec = knownUsers[id];
+        let now = Date.now();
+        if (rec && now - rec.ts < I.user_cache_period_ms) {
+            return { status: 200, body: rec.user };
+        }
+
+        let result = await I.network('kv', 'get', '/auth/users/' + id, null, null);
+        if (result.status !== 200) {
+            return { status: 404 };
+        }
+
+        let user = result.body;
+        let groups = await I.network('kv', 'get', '/auth/users/' + id + '/groups', null, null);
+        user.groups = new Set();
+        if (groups.status === 200) {
+            let ds = new Set();
+            let now = Date.now();
+            for (let g of groups.body) {
+                let gs = await getKnownGroup(g, now, ds);
+                if (g2.status === 200) {
+                    for (let g2 of gs.body) {
+                        user.groups.add(g2);
+                    }
+                    console.assert(user.groups.has(g), "A super group should also be in the groups list.");
+                } else {
+                    user.groups.add(g);
+                }
+            }
+        }
+        knownUsers[id] = { ts: Date.now(), user: result.body };
+        return result;
+    }
+
+    async function getKnownGroup(group, now, doneSet) {
+        let g = knownGroups[group];
+        if (g && now - g.ts < I.group_cache_period_ms) {
+            return { status: 200, body: g.groups };
+        }
+
+        let result = await I.network('kv', 'get', '/auth/groups/' + group, null, null);
+        if (result.status !== 200) {
+            return { status: 404 };
+        }
+
+        let gset = new Set(result.body);
+        gset.add(group);
+        knownGroups[group] = { ts: now, groups: gset };
+        doneSet = doneSet || new Set();
+        doneSet.add(group);
+
+        for (let g of gset) {
+            if (!doneSet.has(g)) {
+                let s = await getKnownGroup(g, now, doneSet);
+                if (s.status === 200) {
+                    for (let g2 of s.body) {
+                        gset.add(g2);
+                    }
+                }
+            }
+        }
+
+        return { status: 200, body: gset };
+    }
 
     I.get = async function (name, resid, query, headers) {
         switch (resid) {
@@ -60,13 +128,15 @@ I.boot = async function (name, resid, query, headers, config) {
                 let sig = hmac(knownApps[kSystemId].secret, str);
                 return { status: 200, body: str + '.' + sig}; 
         }
-        let pat = resid.match(/^[/]?user[/]([A-Za-z0-9]+)$/);
+        let pat = resid.match(/^[/]?users[/]([A-Za-z0-9]+)$/);
         if (pat) {
-            let id = pat[1];
-            if (knownUsers[id]) {
-                return { status: 200, body: knownUsers[id] };
-            }
+            return getKnownUser(pat[1]);
         }
+        pat = resid.match(/^[/]?groups[/]([-A-Za-z0-9_:]+)[/]?$/);
+        if (pat) {
+            return getKnownGroup(pat[1], Date.now(), null);
+        }
+
         return { status: 404, body: "Not found" };
     };
     
@@ -77,6 +147,14 @@ I.boot = async function (name, resid, query, headers, config) {
         }
         if (/^[/]?_config[/]earliest_renew_time_ms$/.test(resid)) {
             I.earliest_renew_time_ms = +body;
+            return { status: 200 };
+        }
+        if (/^[/]?_config[/]user_cache_period_ms$/.test(resid)) {
+            I.user_cache_period_ms = +body;
+            return { status: 200 };
+        }
+        if (/^[/]?_config[/]group_cache_period_ms$/.test(resid)) {
+            I.group_cache_period_ms = +body;
             return { status: 200 };
         }
         return { status: 404, body: 'auth: No such config - ' + resid };
@@ -129,7 +207,17 @@ I.boot = async function (name, resid, query, headers, config) {
                 if (!headers) { break; }
                 let tokenInfo = validatedTokenInfo(unpackAuthToken(headers.authorization));
                 if (!tokenInfo) { break; }
-                return { status: 200, body: knownApps[tokenInfo.app].perms };
+                let auth = {};
+                for (let k in knownApps[tokenInfo.app]) {
+                    auth[k] = knownApps[tokenInfo.app][k];
+                }
+                let user = await getKnownUser(tokenInfo.user);
+                if (user.status === 200) {
+                    auth.groups = user.groups;
+                } else {
+                    auth.groups = new Set();
+                }
+                return { status: 200, body: auth };
             }
             case '/token': {
                 if (!query || !query.app || !query.salt || !query.time || !query.sig) {
@@ -190,7 +278,7 @@ I.boot = async function (name, resid, query, headers, config) {
                     }
                 };
             }
-            case '/app': {
+            case '/apps': {
                 let check = await I.post(name, '/check', query, headers, null);
                 if (check.status !== 200 || check.body.profile !== 'admin') {
                     return { status: 401, body: 'Unauthorized' };
@@ -216,9 +304,13 @@ I.boot = async function (name, resid, query, headers, config) {
                     }
                 };
             }
-            case '/user': {
+            case '/users': {
                 // Used to register user information associated with a token.
-                // TODO: Currently uses an in-memory store. Needs to go to a database.
+                // TODO: Currently uses the KV store. Need better store.
+                // WARNING: May not be a good idea to let the DB user id leak to clients.
+                // However, the user id is an opaque hash which is as good as any random
+                // number that will otherwise need to be used with clients. So this is
+                // perhaps ok. Haven't thought it through fully.
                 let user = body.user;
                 let token = body.token;
                 let userid = hmac(knownApps[kSystemId].secret, JSON.stringify([user.iss, user.sub, user.email]));
@@ -229,13 +321,15 @@ I.boot = async function (name, resid, query, headers, config) {
                 let userTokenPrefix = [userid, info.app, newSalt(), Date.now()].join('.');
                 let userTokenSig = hmac(knownApps[kSystemId].secret, userTokenPrefix);
                 let userToken = userTokenPrefix + '.' + userTokenSig;
-                let userRec = knownUsers[userid] || {};
+                let userRec = {};
                 userRec.id = userid;
                 userRec.user = user;
                 userRec.token = token;
                 userRec.userToken = userToken;
                 userRec.branches = userRec.branches || {};
-                knownUsers[userid] = userRec;
+                knownUsers[userid] = { ts: Date.now(), user: userRec };
+                await I.network('kv', 'put', '/auth/users/' + userid, null, null, userRec);
+
                 return {
                     status: 200,
                     body: {
@@ -245,13 +339,16 @@ I.boot = async function (name, resid, query, headers, config) {
                     }
                 };
             }
-            case '/branch': {
+            case '/branches': {
                 let info = validatedTokenInfo(unpackAuthToken(headers && headers.authorization));
                 if (!info || !info.user || !knownUsers[info.user]) { return { status: 401, body: 'Unauthorized' }; }
                 let branch = newBranch(knownApps[kSystemId].secret, info.user);
                 let tokenPrefix = [branch, info.user, info.app, newSalt(), Date.now()].join('.');
                 let tokenSig = hmac(knownApps[kSystemId].secret, tokenPrefix);
                 let token = tokenPrefix + '.' + tokenSig;
+                if (!knownUsers[info.user].branches) {
+                    knownUsers[info.user].branches = {};
+                }
                 knownUsers[info.user].branches[branch] = {
                     is_creator: true,
                     read: true,
@@ -271,6 +368,22 @@ I.boot = async function (name, resid, query, headers, config) {
             }
         }
 
+        // Post to a specific groups collection results in it being inserted.
+        // TODO: The insertion of a subgroup will not currently have immediate effect.
+        // WARNING: The group insertion isn't currently a transaction!
+        let pat = resid.match(/^[/]?groups[/]([-A-Za-z0-9_:]+)[/]?$/);
+        if (pat) {
+            let gs = await I.network('kv', 'get', '/auth/groups/' + pat[1], null, null);
+            if (gs.status === 200) {
+                let s = new Set(gs.body);
+                s.add(body);
+                await I.network('kv', 'put', '/auth/groups/' + pat[1], null, null, [...s]);
+            } else {
+                await I.network('kv', 'put', '/auth/groups/' + pat[1], null, null [body]);
+            }
+            delete knownGroups[pat[1]];
+            return { status: 200 };
+        }
         return { status: 401, body: 'Unauthorized' };
     };
 
