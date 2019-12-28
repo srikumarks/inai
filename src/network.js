@@ -1,3 +1,4 @@
+const AtomicQueue = require('./atomic_queue');
 
 const isNodeJS = (new Function("try {return this===global;}catch(e){return false;}"))();
 const isBrowser = (new Function("try {return this===window;}catch(e){return false;}"))();
@@ -66,60 +67,16 @@ function createNode(options) {
 
     let reqid = 1; // Increments for every request.
 
-    // A very simple non-failing channel implementation
-    // that is used to carve out independent async blocks of
-    // code that must not interfere with each other.
-    function channel() {
-        let queue = [],     // We'll post a queue of values to the channel.
-            callbacks = []; // .. which will be consumed by being pushed
-                            //    to callbacks.
-    
-        // Check if we have to push values to callbacks.
-        function pump() {
-            while (queue.length > 0 && callbacks.length > 0) {
-                setImmediate(callbacks.shift(), queue.shift());
-            }
-        }
-    
-        return {
-            post: function (val) {
-                queue.push(val);
-                pump();
-            },
-            then: function (onSuccess, onFailure) {
-                // onSuccess and onFailure are continuations
-                // passed to us in `await` situations.
-                callbacks.push(onSuccess);
-                pump();
-            }
-        };
-    }
-
-    // The sole "atomic" channel and its processor.
-    let atomicQueue = channel();
-    (async () => {
-        while (true) {
-            let func = await atomicQueue;
-            try {
-                await func();
-            } catch (e) {
-                logger.error("atomicQueue: " + e);
-            }
-        }
-    })();
-
+ 
     // Atomic ensures that no other atomic block will
     // run alongside any other one. 
     // 
     // pfunc is a function that returns a promise, or, equivalently,
-    // an async function that takes no arguments.
+    // an async function that takes no arguments.    
+    let atomicQueue = new AtomicQueue();
+
     function atomic(pfunc) {
-        return new Promise((resolve, reject) => {
-            atomicQueue.post(() => {
-                let p = pfunc();
-                return (p && p.then ? p.then(resolve).catch(reject) : p);
-            });
-        });
+        return atomicQueue.atomic(pfunc);
     }
 
     /**
@@ -181,6 +138,18 @@ function createNode(options) {
 
     let dnsObj = Object.create(I);
     services.set('_dns', dnsObj);
+    dns.set('/_doc', `
+# DNS service
+
+## GET/PUT \`name\`
+
+Resolves the given name and returns the address of the service that
+maps to that name. PUT will change the mapping.
+
+## GET/PUT \`name/_meta\`
+
+Gets/sets the full metadata object form associated with the name.
+    `);
     dnsObj._dns = dns;
     dnsObj.get = function (name, resid, query, headers) {
         let entry = dns.get(resid);
@@ -195,6 +164,7 @@ function createNode(options) {
         }
         let prevAddress = dns.get(resid);
         if (prevAddress) {
+            console.log(resid + "[" + prevAddress + "] is now orphaned");
             orphanServices.add(prevAddress);
             orphanServices.delete(body);
         }
@@ -331,6 +301,8 @@ function createNode(options) {
         let id = m[2];
         let codeInfo = codeBase.get(codeId);
         if (codeInfo && codeInfo.instances.has(id)) {
+            console.log("Shutting down " + id);
+            orphanServices.delete(id);
             await I.network(id, 'shutdown', '/', null, null, null);
             codeInfo.instances.delete(id);
             services.delete(id);
