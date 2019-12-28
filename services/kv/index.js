@@ -172,8 +172,11 @@ async function boot(args) {
         return ok;
     };
 
-    // Use to merge a branch back to trunk by sending MERGE to /_branch/<brid>
+    // Use to merge a branch back to trunk by sending MERGE to /_branch/<brid>/<brns>
     // This is not a standard http verb, but we're only interested in REST, not HTTP.
+    // The <brns> is useful to limit the merge to a subtree of the branch. For example,
+    // you can merge back only the code associated with the branch without touching
+    // any data by using the `codebase` namespace.
     I.merge = async function (name, resid, query, headers, body) {
         let br = resid.match(/^[/]_branch[/]([^/]+)[/]([^/]+)$/);
         if (!br) { return not_found; }
