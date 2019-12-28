@@ -208,14 +208,17 @@ I.boot = async function (name, resid, query, headers, config) {
                 let tokenInfo = validatedTokenInfo(unpackAuthToken(headers.authorization));
                 if (!tokenInfo) { break; }
                 let auth = {};
-                for (let k in knownApps[tokenInfo.app]) {
-                    auth[k] = knownApps[tokenInfo.app][k];
+                let p = knownApps[tokenInfo.app].perms;
+                for (let k in p) {
+                    auth[k] = p[k];
                 }
-                let user = await getKnownUser(tokenInfo.user);
-                if (user.status === 200) {
-                    auth.groups = user.groups;
-                } else {
-                    auth.groups = new Set();
+                if (tokenInfo.user) {
+                    let user = await getKnownUser(tokenInfo.user);
+                    if (user.status === 200) {
+                        auth.groups = user.groups;
+                    } else {
+                        auth.groups = new Set();
+                    }
                 }
                 return { status: 200, body: auth };
             }
