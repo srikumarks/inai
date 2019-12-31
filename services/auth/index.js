@@ -48,6 +48,7 @@ I.boot = async function (name, resid, query, headers, config) {
     let kSystemId = config.systemId;
     let knownUsers = {};
     let knownGroups = {};
+    let authCache = new Map();
 
     I.token_expiry_ms = 5 * 60 * 1000; // 5 minutes.
     I.earliest_renew_time_ms = 0;
@@ -201,10 +202,32 @@ I.boot = async function (name, resid, query, headers, config) {
         return info;
     }
 
+    I.delete = function (name, resid, query, headers) {
+        if (resid === '/_cache') {
+            let now = Date.now();
+            for (let [k, v] of authCache) {
+                if (v.ts + I.token_expiry_ms < now) {
+                    authCache.delete(k);
+                }
+            }
+            return { status: 200 };
+        }
+        return { status: 404 };
+    };
+
     I.post = async function (name, resid, query, headers, body) {
         switch (resid) {
             case '/check': {
-                if (!headers) { break; }
+                // /check uses a cache so that auth checks are cheap
+                // within the system. Only the token expiry check is done
+                // and the parsed token info is kept for the duration of
+                // the token. This means the group calculations are also
+                // preserved for the period of token validity.
+                if (!headers || !headers.authorization) { break; }
+                let c_auth = authCache.get(headers.authorization);
+                if (c_auth && c_auth.ts > I.earliest_renew_time_ms && Date.now() < c_auth.ts + I.token_expiry_ms) {
+                    return { status: 200, body: c_auth.auth };
+                }
                 let tokenInfo = validatedTokenInfo(unpackAuthToken(headers.authorization));
                 if (!tokenInfo) { break; }
                 let auth = {};
@@ -220,6 +243,7 @@ I.boot = async function (name, resid, query, headers, config) {
                         auth.groups = new Set();
                     }
                 }
+                authCache.set(headers.authorization, { ts: tokenInfo.time, auth: auth });
                 return { status: 200, body: auth };
             }
             case '/token': {
@@ -369,7 +393,7 @@ I.boot = async function (name, resid, query, headers, config) {
                     }
                 };
             }
-        }
+         }
 
         // Post to a specific groups collection results in it being inserted.
         // TODO: The insertion of a subgroup will not currently have immediate effect.

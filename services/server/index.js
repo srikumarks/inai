@@ -28,8 +28,8 @@
             let response = await fetch(providerBaseURL + '/_proxy', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': auth
+                    'content-type': 'application/json',
+                    'authorization': auth
                 },
                 body: JSON.stringify({
                     name: service,

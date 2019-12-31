@@ -177,10 +177,10 @@ app.post('/:serviceId/_proxy', withAuth(async function (req, res) {
         // will know that we're operating in a branch of the
         // system and they can choose to maintain separate state
         // per branch.
+        if (!json.headers) {
+            json.headers = {};
+        }
         if (req.auth.branch) {
-            if (!json.headers) {
-                json.headers = {};
-            }
             json.headers['inai-branch'] = req.auth.branch;
         }
         let reply = await I.network(json.name, json.verb, json.resid, json.query, json.headers, json.body);
