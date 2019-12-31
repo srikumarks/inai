@@ -1,0 +1,11 @@
+{
+  "name": "sql",
+  "disabled": true,
+  "public": false,
+  "env": [
+    "server"
+  ],
+  "config": {
+    "connection": "$SQL_DB_CONNECTION"
+  }
+}

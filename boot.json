@@ -18,6 +18,7 @@
   "start": [
     "logger_server",
     "kv",
+    "sql",
     "auth",
     "gauth",
     "opencpu",
