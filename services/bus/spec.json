@@ -1,0 +1,8 @@
+{
+  "name": "bus",
+  "disabled": false,
+  "public": true,
+  "env": [
+    "browser"
+  ]
+}

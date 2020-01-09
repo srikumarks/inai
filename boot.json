@@ -29,6 +29,7 @@
     "greet",
     "gsignin",
     "uikit",
-    "bulma"
+    "bulma",
+    "bus"
   ]
 }
