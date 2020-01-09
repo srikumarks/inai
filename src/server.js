@@ -306,6 +306,38 @@ async function bootService(branch, spec) {
     let name = spec.name;
     let codeId = spec.codeId;
     let args = spec.config;
+    if (spec.boot_deps && spec.boot_deps.length > 0) {
+        for (let dep of spec.boot_deps) {
+            let present = await I.network('_dns', 'get', dep, null, null);
+            if (present.status !== 200) {
+                // The service that this service depends on at boot time
+                // isn't present yet. So need to start that. Note that the
+                // dependencies that need to be declared are only those
+                // needed at BOOT TIME and not those required for RUNTIME.
+                // This is usualy an empty list as most services don't require
+                // other services to just boot, but only call on other services
+                // when some API is invoked.
+                //
+                // So when something needed by this service at boot time is
+                // absent, we assume that the boot sequence has these services
+                // in the list and they will eventually be booted. So we just
+                // postpone the booting of this service until then.
+                //
+                // Note: Boot time dependencies cannot be circular.
+                //
+                // WARNING: Due to the "dependencies are already listed" assumption,
+                // it is possible that this ends up in an infinite loop. Should
+                // have a fix for that sometime.
+                console.log("Postponing " + name + " until " + dep + " is available.");
+                I.atomic(() => {
+                    return bootService(branch, spec);
+                });
+
+                // We've postponed the boot. Leave right away.
+                return;
+            }
+        }
+    }
     console.log("Booting " + (name || codeId) + " ... ");
     await ensureCodeLoaded(branch, codeId);
     let result = await I.network('_services', 'post', codeId + '/instances', null, brh, args);
