@@ -242,6 +242,7 @@ I.boot = async function (name, resid, query, headers, config) {
                     } else {
                         auth.groups = new Set();
                     }
+                    auth.groups_pat = '|' + [...auth.groups].join('|') + '|';
                 }
                 authCache.set(headers.authorization, { ts: tokenInfo.time, auth: auth });
                 return { status: 200, body: auth };

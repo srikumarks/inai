@@ -67,6 +67,9 @@ function createNode(options) {
 
     let reqid = 1; // Increments for every request.
 
+    // Maps service name to policy regexp for testing against
+    // <verb> <resid> |group1|group2|...|
+    let policyForService = new Map();
  
     // Atomic ensures that no other atomic block will
     // run alongside any other one. 
@@ -113,6 +116,18 @@ function createNode(options) {
         if (!node) { return not_found(); }
 
         try {
+            let p = policyForService.get(service);
+            if (p) {
+                let auth = await network('auth', 'post', '/check', query, headers);
+                if (auth.status === 200) {
+                    let pat = service + ' ' + verb + ' ' + resid + ' ' + auth.body.groups_pat;
+                    if (!p.test(pat)) {
+                        return server_error('not_permitted');
+                    }
+                } else {
+                    return server_error('not_permitted');
+                }
+            }
             let rid = reqid++;
             if (options.log.requests && canLog(service)) { logger.log('REQ['+rid+']', 'v:'+verb, 'srv:'+service, 'res:'+resid, 'q:'+JSON.stringify(query||null), 'h:'+JSON.stringify(headers||null)); }
             let result = await node.route(service, verb, resid, query, headers, body, this._self);
@@ -123,6 +138,18 @@ function createNode(options) {
             return server_error(e.toString());
         }
     }
+
+    // The policy service tells whether a particular service request is permissible.
+    let policyObj = Object.create(I);
+    services.set('_policy', policyObj);
+    policyObj.put = function (name, service, query, headers, access) {
+        policyForService.set(service, new RegExp(access));
+        return { status: 200 };
+    };
+    policyObj.get = function (name, service, query, headers) {
+        let p = policyForService.get(service);
+        return { status: p ? 200 : 404, body: p };
+    };
 
     // The DNS is its own REST service and supports getting an address given a
     // name and setting an address to a name. This is very basic, but we can
