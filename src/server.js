@@ -24,13 +24,13 @@ I.env = process.env;
 const crypto = require('crypto');
 const fs = require('fs');
 const express = require('express');
-const app = express();
+const router = express.Router();
 const port = +(process.env.PORT || 8080);
 const bootFile = process.argv[2] || process.env.BOOTFILE || 'boot.json';
 
-app.use(express.json({type:'application/json'}));
-app.use(express.text({type:'text/plain'}));
-app.use('/static', express.static('static'));
+router.use(express.json({type:'application/json'}));
+router.use(express.text({type:'text/plain'}));
+router.use('/static', express.static('static'));
 
 // Use the `auth` service to grab a token and check it for user permissions.
 function withAuth(fn) {
@@ -71,7 +71,7 @@ function maybeBranch(req) {
 // the initialization config is returned in the `inai-args`
 // header, where it is JSON encoded and URI-component encoded
 // so that it won't interfere with the HTTP protocol.
-app.get('/_codebase/:codeId', withAuth(async function (req, res) {
+router.get('/_codebase/:codeId', withAuth(async function (req, res) {
     let codeId = req.params.codeId;
     try {
         let result = await I.network('_codebase', 'get', '/named/' + codeId, null, maybeBranch(req));
@@ -97,39 +97,39 @@ app.get('/_codebase/:codeId', withAuth(async function (req, res) {
 }));
 
 // See redis_codebase service.
-app.put(/[/]_codebase[/]code[/]([^/]+)$/, onlyLocalhost(async function (req, res) {
+router.put(/[/]_codebase[/]code[/]([^/]+)$/, onlyLocalhost(async function (req, res) {
     await I.network('_codebase', 'put', '/code/' + req.params[0], null, maybeBranch(req), req.body);
     res.status(200).send('ok');
 }));
 
-app.put(/[/]_codebase[/]meta[/]([^/]+)$/, onlyLocalhost(async function (req, res) {
+router.put(/[/]_codebase[/]meta[/]([^/]+)$/, onlyLocalhost(async function (req, res) {
     await I.network('_codebase', 'put', '/meta/' + req.params[0], null, maybeBranch(req), req.body);
     res.status(200).send('ok');
 }));
 
-app.put(/[/]_codebase[/]assets[/]([^/]+)$/, onlyLocalhost(async function (req, res) {
+router.put(/[/]_codebase[/]assets[/]([^/]+)$/, onlyLocalhost(async function (req, res) {
     await I.network('_codebase', 'put', '/assets/' + req.params[0], null, maybeBranch(req), req.body);
     res.status(200).send('ok');
 }));
 
-app.put(/[/]_codebase[/]named[/](.+)$/, onlyLocalhost(async function (req, res) {
+router.put(/[/]_codebase[/]named[/](.+)$/, onlyLocalhost(async function (req, res) {
     await I.network('_codebase', 'put', '/named/' + req.params[0], null, maybeBranch(req), req.body);
     res.status(200).send('ok');
 }));
 
 // Localhosts can query the DNS.
-app.get('/_dns/:name', onlyLocalhost(async function (req, res) {
+router.get('/_dns/:name', onlyLocalhost(async function (req, res) {
     let reply = await I.network('_dns', 'get', req.params.name, null, maybeBranch(req));
     sendReply(res, reply);
 }));
 
 // Localhosts can get component documentation.
-app.get('/_doc/:name', onlyLocalhost(async function (req, res) {
+router.get('/_doc/:name', onlyLocalhost(async function (req, res) {
     sendReply(res, await I.network(req.params.name, 'get', '/_doc', null, maybeBranch(req)));
 }));
 
 // Localhosts can switch components.
-app.put('/_dns/:name', onlyLocalhost(async function (req, res) {
+router.put('/_dns/:name', onlyLocalhost(async function (req, res) {
     try {
         let name = req.params.name;
         let reply = await I.network('_dns', 'put', name, null, maybeBranch(req), req.body);
@@ -144,7 +144,7 @@ app.put('/_dns/:name', onlyLocalhost(async function (req, res) {
 }));
 
 // Permit a custom boot sequence at any time from localhost.
-app.post('/_boot', onlyLocalhost(async function (req, res) {
+router.post('/_boot', onlyLocalhost(async function (req, res) {
     await bootFromSpec(branch, req.body);
     res.json(true);
 }));
@@ -153,7 +153,7 @@ app.post('/_boot', onlyLocalhost(async function (req, res) {
 // /_config end point to direct key-value type config information
 // at individual services. This end point is protected to be localhost
 // only so that random entities cannot modify configuration information.
-app.put('/:serviceId/_config/:key', onlyLocalhost(async function (req, res) {
+router.put('/:serviceId/_config/:key', onlyLocalhost(async function (req, res) {
     sendReply(res, await I.network(serviceId, 'put', '/_config/' + key, null, maybeBranch(req), req.body));
 }));
 
@@ -161,7 +161,7 @@ app.put('/:serviceId/_config/:key', onlyLocalhost(async function (req, res) {
 // This offers a point where we can check whether a client actually
 // has permissions to access the service references in the proxy
 // request before forwarding it to this node's internal "network".
-app.post('/:serviceId/_proxy', withAuth(async function (req, res) {
+router.post('/:serviceId/_proxy', withAuth(async function (req, res) {
     let json = req.body;
     let perms = (req.params.serviceId === json.name); // It can access itself.
     if (!perms) {
@@ -196,7 +196,7 @@ async function boot(bootFile) {
     await bootCodebaseService(null, 'redis_codebase', bootSpec.boot[0].config);
     await bootFromSpec(null, bootSpec);
     installPublicHandler();
-    start();
+    start(bootSpec.mount);
 }
 
 function bootFromSpec(branch, bootSpec) {
@@ -225,7 +225,7 @@ function bootFromSpec(branch, bootSpec) {
 // Any other route end point encountered may be intended for
 // a service marked "public". So check that and pass on the request.
 function installPublicHandler() {
-    app.use(async function (req, res, next) {
+    router.use(async function (req, res, next) {
         let m = req.path.match(/^[/]?([^/]+)(.*)$/); //  /(<serviceid>)(/<resid>)
         if (!m) { return res.status(404).send("Not found"); }
         let serviceName = m[1];
@@ -257,7 +257,9 @@ function installPublicHandler() {
     });
 }
 
-function start() {
+function start(mountPoint) {
+    const app = express();
+    app.use(mountPoint, router);
     app.listen(port, () => {
         console.log("Started on port", port);
     });

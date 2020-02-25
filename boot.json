@@ -1,4 +1,5 @@
 {
+  "mount": "/",
   "boot": [
     {
       "name": "codebase",

@@ -216,203 +216,215 @@ I.boot = async function (name, resid, query, headers, config) {
     };
 
     I.post = async function (name, resid, query, headers, body) {
-        switch (resid) {
-            case '/check': {
-                // /check uses a cache so that auth checks are cheap
-                // within the system. Only the token expiry check is done
-                // and the parsed token info is kept for the duration of
-                // the token. This means the group calculations are also
-                // preserved for the period of token validity.
-                if (!headers || !headers.authorization) { break; }
-                let c_auth = authCache.get(headers.authorization);
-                if (c_auth && c_auth.ts > I.earliest_renew_time_ms && Date.now() < c_auth.ts + I.token_expiry_ms) {
-                    return { status: 200, body: c_auth.auth };
-                }
-                let tokenInfo = validatedTokenInfo(unpackAuthToken(headers.authorization));
-                if (!tokenInfo) { break; }
-                let auth = {};
-                let p = knownApps[tokenInfo.app].perms;
-                for (let k in p) {
-                    auth[k] = p[k];
-                }
-                if (tokenInfo.user) {
-                    let user = await getKnownUser(tokenInfo.user);
-                    if (user.status === 200) {
-                        auth.groups = user.groups;
-                    } else {
-                        auth.groups = new Set();
+        try {
+            switch (resid) {
+                case '/check': {
+                    // /check uses a cache so that auth checks are cheap
+                    // within the system. Only the token expiry check is done
+                    // and the parsed token info is kept for the duration of
+                    // the token. This means the group calculations are also
+                    // preserved for the period of token validity.
+                    if (!headers || !headers.authorization) { break; }
+                    let c_auth = authCache.get(headers.authorization);
+                    if (c_auth && c_auth.ts > I.earliest_renew_time_ms && Date.now() < c_auth.ts + I.token_expiry_ms) {
+                        return { status: 200, body: c_auth.auth };
+                    }
+                    let tokenInfo = validatedTokenInfo(unpackAuthToken(headers.authorization));
+                    if (!tokenInfo) { throw 'unauthorized'; }
+                    let auth = {};
+                    let p = knownApps[tokenInfo.app].perms;
+                    for (let k in p) {
+                        auth[k] = p[k];
+                    }
+                    if (tokenInfo.user) {
+                        let user = await getKnownUser(tokenInfo.user);
+                        if (user.status === 200) {
+                            auth.groups = user.groups;
+                        } else {
+                            auth.groups = new Set();
+                        }
                     }
                     auth.groups_pat = '|' + [...auth.groups].join('|') + '|';
+                    authCache.set(headers.authorization, { ts: tokenInfo.time, auth: auth });
+                    return { status: 200, body: auth };
                 }
-                authCache.set(headers.authorization, { ts: tokenInfo.time, auth: auth });
-                return { status: 200, body: auth };
-            }
-            case '/token': {
-                if (!query || !query.app || !query.salt || !query.time || !query.sig) {
-                    // User wants to renew a token. You can just POST to /token
-                    // with the appropriate expired token in the authorization header
-                    // as a "Bearer:" token and the service will send you a renewed
-                    // token. You may ask "But doesn't this mean that all tokens are
-                    // valid indefinitely?". The step of token renewal offers a chance
-                    // for us to invalidate a token. Instead of storing tokens in a
-                    // DB with an "invalid" flag against them to invalidate, we store
-                    // a global "earliest_renew_time_ms" time stamp. Any token that was
-                    // issued before this time stamp won't be renewable and the user will
-                    // have to sign in again to get a new token. This means we can 
-                    // in one go invalidate a whole bunch of tokens in case of some fraud
-                    // from the backend without the intervention of a database.
-                    let info = unpackAuthToken(headers.authorization);
-                    if (!info || info.sig !== info.calcSig || info.time < I.earliest_renew_time_ms) {
-                        return { status: 401, body: 'Bad token' };
+                case '/token': {
+                    if (!query || !query.app || !query.salt || !query.time || !query.sig) {
+                        // User wants to renew a token. You can just POST to /token
+                        // with the appropriate expired token in the authorization header
+                        // as a "Bearer:" token and the service will send you a renewed
+                        // token. You may ask "But doesn't this mean that all tokens are
+                        // valid indefinitely?". The step of token renewal offers a chance
+                        // for us to invalidate a token. Instead of storing tokens in a
+                        // DB with an "invalid" flag against them to invalidate, we store
+                        // a global "earliest_renew_time_ms" time stamp. Any token that was
+                        // issued before this time stamp won't be renewable and the user will
+                        // have to sign in again to get a new token. This means we can 
+                        // in one go invalidate a whole bunch of tokens in case of some fraud
+                        // from the backend without the intervention of a database.
+                        let info = unpackAuthToken(headers.authorization);
+                        if (!info || info.sig !== info.calcSig || info.time < I.earliest_renew_time_ms) {
+                            return { status: 401, body: 'Bad token' };
+                        }
+                        let salt = newSalt();
+                        let time = Date.now();
+                        let prefix = (
+                            (info.branch ? info.branch + '.' : '') +
+                                (info.user ? info.user + '.' : '') +
+                                (info.app ? info.app + '.' : '') +
+                                salt + '.' +
+                                time
+                        );
+                        let sig = hmac(knownApps[kSystemId].secret, prefix);
+                        return {
+                            status: 200,
+                            body: {
+                                branch: info.branch,
+                                user: info.user,
+                                app: info.app,
+                                salt: salt,
+                                time: time,
+                                token: prefix + '.' + sig
+                            }
+                        };
                     }
-                    let salt = newSalt();
-                    let time = Date.now();
-                    let prefix = (
-                        (info.branch ? info.branch + '.' : '') +
-                        (info.user ? info.user + '.' : '') +
-                        (info.app ? info.app + '.' : '') +
-                        salt + '.' +
-                        time
-                    );
-                    let sig = hmac(knownApps[kSystemId].secret, prefix);
+                    if (!knownApps[query.app]) { throw 'forbidden'; }
+                    let now = Date.now();
+                    if (now >= query.time + I.token_expiry_ms) { throw 'token_expired'; }
+                    let mysig = hmac(knownApps[kSystemId].secret, query.salt + '.' + query.time);
+                    let clisig = hmac(knownApps[query.app].secret, query.app + '.' + query.salt + '.' + query.time + '.' + mysig);
+                    if (query.sig !== clisig) { throw 'forbidden'; }
+                    let salt = random(10);
+                    let sigstr = query.app + '.' + salt + '.' + now;
+                    let sig = hmac(knownApps[kSystemId].secret, sigstr);
                     return {
                         status: 200,
                         body: {
-                            branch: info.branch,
-                            user: info.user,
-                            app: info.app,
+                            app: query.app,
                             salt: salt,
-                            time: time,
-                            token: prefix + '.' + sig
+                            time: now,
+                            token: sigstr + '.' + sig
                         }
                     };
                 }
-                if (!knownApps[query.app]) { break; }
-                let now = Date.now();
-                if (now >= query.time + I.token_expiry_ms) { return { status: 401, body: 'Expired' }; }
-                let mysig = hmac(knownApps[kSystemId].secret, query.salt + '.' + query.time);
-                let clisig = hmac(knownApps[query.app].secret, query.app + '.' + query.salt + '.' + query.time + '.' + mysig);
-                if (query.sig !== clisig) { break; }
-                let salt = random(10);
-                let sigstr = query.app + '.' + salt + '.' + now;
-                let sig = hmac(knownApps[kSystemId].secret, sigstr);
-                return {
-                    status: 200,
-                    body: {
-                        app: query.app,
-                        salt: salt,
-                        time: now,
-                        token: sigstr + '.' + sig
+                case '/apps': {
+                    let check = await I.post(name, '/check', query, headers, null);
+                    if (check.status !== 200 || check.body.profile !== 'admin') {
+                        throw 'forbidden';
                     }
-                };
-            }
-            case '/apps': {
-                let check = await I.post(name, '/check', query, headers, null);
-                if (check.status !== 200 || check.body.profile !== 'admin') {
-                    return { status: 401, body: 'Unauthorized' };
-                }
 
-                // Make a new appid and secret, or obey the admin.
-                let appId = body.appId || random(10);
-                let appSecret = body.appSecret || random(20);
-                let perms = body.perms || { profile: 'none' };
+                    // Make a new appid and secret, or obey the admin.
+                    let appId = body.appId || random(10);
+                    let appSecret = body.appSecret || random(20);
+                    let perms = body.perms || { profile: 'none' };
 
-                // We trust the admin
-                knownApps[appId] = {
-                    secret: appSecret,
-                    perms: perms
-                };
-
-                return {
-                    status: 200,
-                    body: {
-                        appId: appId,
-                        appSecret: appSecret,
+                    // We trust the admin
+                    knownApps[appId] = {
+                        secret: appSecret,
                         perms: perms
-                    }
-                };
-            }
-            case '/users': {
-                // Used to register user information associated with a token.
-                // TODO: Currently uses the KV store. Need better store.
-                // WARNING: May not be a good idea to let the DB user id leak to clients.
-                // However, the user id is an opaque hash which is as good as any random
-                // number that will otherwise need to be used with clients. So this is
-                // perhaps ok. Haven't thought it through fully.
-                let user = body.user;
-                let token = body.token;
-                let userid = hmac(knownApps[kSystemId].secret, JSON.stringify([user.iss, user.sub, user.email]));
-                let info = validatedTokenInfo(unpackAuthToken(headers && headers.authorization));
-                if (!info) {
-                    return { status: 401, body: 'Unauthorized' };
-                }
-                let userTokenPrefix = [userid, info.app, newSalt(), Date.now()].join('.');
-                let userTokenSig = hmac(knownApps[kSystemId].secret, userTokenPrefix);
-                let userToken = userTokenPrefix + '.' + userTokenSig;
-                let userRec = {};
-                userRec.id = userid;
-                userRec.user = user;
-                userRec.token = token;
-                userRec.userToken = userToken;
-                userRec.branches = userRec.branches || {};
-                knownUsers[userid] = { ts: Date.now(), user: userRec };
-                await I.network('kv', 'put', '/auth/users/' + userid, null, null, userRec);
+                    };
 
-                return {
-                    status: 200,
-                    body: {
-                        user: userid,
-                        app: info.app,
-                        token: userToken
-                    }
-                };
-            }
-            case '/branches': {
-                let info = validatedTokenInfo(unpackAuthToken(headers && headers.authorization));
-                if (!info || !info.user || !knownUsers[info.user]) { return { status: 401, body: 'Unauthorized' }; }
-                let branch = newBranch(knownApps[kSystemId].secret, info.user);
-                let tokenPrefix = [branch, info.user, info.app, newSalt(), Date.now()].join('.');
-                let tokenSig = hmac(knownApps[kSystemId].secret, tokenPrefix);
-                let token = tokenPrefix + '.' + tokenSig;
-                if (!knownUsers[info.user].branches) {
-                    knownUsers[info.user].branches = {};
+                    return {
+                        status: 200,
+                        body: {
+                            appId: appId,
+                            appSecret: appSecret,
+                            perms: perms
+                        }
+                    };
                 }
-                knownUsers[info.user].branches[branch] = {
-                    is_creator: true,
-                    read: true,
-                    write: true,
-                    delete: true,
-                    share: true
-                };
-                return {
-                    status: 200,
-                    body: {
-                        branch: branch,
-                        user: info.user,
-                        app: info.app,
-                        token: token
-                    }
-                };
-            }
-         }
+                case '/users': {
+                    // Used to register user information associated with a token.
+                    // TODO: Currently uses the KV store. Need better store.
+                    // WARNING: May not be a good idea to let the DB user id leak to clients.
+                    // However, the user id is an opaque hash which is as good as any random
+                    // number that will otherwise need to be used with clients. So this is
+                    // perhaps ok. Haven't thought it through fully.
+                    let user = body.user;
+                    let token = body.token;
+                    let userid = hmac(knownApps[kSystemId].secret, JSON.stringify([user.iss, user.sub, user.email]));
+                    let info = validatedTokenInfo(unpackAuthToken(headers && headers.authorization));
+                    if (!info) { throw 'forbidden'; }
+                    let userTokenPrefix = [userid, info.app, newSalt(), Date.now()].join('.');
+                    let userTokenSig = hmac(knownApps[kSystemId].secret, userTokenPrefix);
+                    let userToken = userTokenPrefix + '.' + userTokenSig;
+                    let userRec = {};
+                    userRec.id = userid;
+                    userRec.user = user;
+                    userRec.token = token;
+                    userRec.userToken = userToken;
+                    userRec.branches = userRec.branches || {};
+                    knownUsers[userid] = { ts: Date.now(), user: userRec };
+                    await I.network('kv', 'put', '/auth/users/' + userid, null, null, userRec);
 
-        // Post to a specific groups collection results in it being inserted.
-        // TODO: The insertion of a subgroup will not currently have immediate effect.
-        // WARNING: The group insertion isn't currently a transaction!
-        let pat = resid.match(/^[/]?groups[/]([-A-Za-z0-9_:]+)[/]?$/);
-        if (pat) {
-            let gs = await I.network('kv', 'get', '/auth/groups/' + pat[1], null, null);
-            if (gs.status === 200) {
-                let s = new Set(gs.body);
-                s.add(body);
-                await I.network('kv', 'put', '/auth/groups/' + pat[1], null, null, [...s]);
-            } else {
-                await I.network('kv', 'put', '/auth/groups/' + pat[1], null, null [body]);
+                    return {
+                        status: 200,
+                        body: {
+                            user: userid,
+                            app: info.app,
+                            token: userToken
+                        }
+                    };
+                }
+                case '/branches': {
+                    let info = validatedTokenInfo(unpackAuthToken(headers && headers.authorization));
+                    if (!info || !info.user || !knownUsers[info.user]) {
+                        throw 'forbidden';
+                    }
+                    let branch = newBranch(knownApps[kSystemId].secret, info.user);
+                    let tokenPrefix = [branch, info.user, info.app, newSalt(), Date.now()].join('.');
+                    let tokenSig = hmac(knownApps[kSystemId].secret, tokenPrefix);
+                    let token = tokenPrefix + '.' + tokenSig;
+                    if (!knownUsers[info.user].branches) {
+                        knownUsers[info.user].branches = {};
+                    }
+                    knownUsers[info.user].branches[branch] = {
+                        is_creator: true,
+                        read: true,
+                        write: true,
+                        delete: true,
+                        share: true
+                    };
+                    return {
+                        status: 200,
+                        body: {
+                            branch: branch,
+                            user: info.user,
+                            app: info.app,
+                            token: token
+                        }
+                    };
+                }
             }
-            delete knownGroups[pat[1]];
-            return { status: 200 };
+
+            // Post to a specific groups collection results in it being inserted.
+            // TODO: The insertion of a subgroup will not currently have immediate effect.
+            // WARNING: The group insertion isn't currently a transaction!
+            let pat = resid.match(/^[/]?groups[/]([-A-Za-z0-9_:]+)[/]?$/);
+            if (pat) {
+                let gs = await I.network('kv', 'get', '/auth/groups/' + pat[1], null, null);
+                if (gs.status === 200) {
+                    let s = new Set(gs.body);
+                    s.add(body);
+                    await I.network('kv', 'put', '/auth/groups/' + pat[1], null, null, [...s]);
+                } else {
+                    await I.network('kv', 'put', '/auth/groups/' + pat[1], null, null [body]);
+                }
+                delete knownGroups[pat[1]];
+                return { status: 200 };
+            }
+
+            throw 'forbidden';
+        } catch (e) {
+            switch (e) {
+            case 'forbidden':
+                return { status: 403, body: 'forbidden' };
+            case 'token_expired':
+                return { status: 498, body: 'token_expired' };
+            default:
+                return { status: 500, body: e.toString() };
+            }
         }
-        return { status: 401, body: 'Unauthorized' };
     };
 
     I.boot = null;
