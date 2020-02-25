@@ -21,6 +21,7 @@ I.boot = async function (name, resid, query, headers, config) {
     I.dom('gsignin/platformScript', {
         op: 'set',
         tag: 'script',
+        once: true,
         attrs: { src: 'https://apis.google.com/js/platform.js', async: true, defer: true },
         childOf: 'head'
     });
@@ -29,6 +30,7 @@ I.boot = async function (name, resid, query, headers, config) {
     I.dom('gsignin/meta', {
         op: 'set',
         tag: 'meta',
+        once: true,
         attrs: { name: 'google-signin-client_id', content: config.client_id },
         childOf: 'head'
     });
