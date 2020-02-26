@@ -21,19 +21,14 @@ function sleep(ms) {
     });
 }
 
-async function ensureVegaReady() {
-    let t0 = Date.now();
-    while (!window["vegaEmbed"]) {
-        console.log("Waiting for Vega to load ... (" + (Date.now() - t0) + "ms)");
-        await sleep(250);
+function cleanup(I) {
+    if (I.view) {
+        I.view.finalize();
+        I.view = null;
     }
-    console.log("Vega ready");
-    return true;
 }
 
-I.boot = async function (name, resid, query, headers, config) {
-    debugger;
-
+async function requireVega(I, config) {
     if (!window.inaiVegaScriptsAdded) {
         window.inaiVegaScriptsAdded = true;
         const scripts = {
@@ -41,6 +36,13 @@ I.boot = async function (name, resid, query, headers, config) {
             lite: "https://cdn.jsdelivr.net/npm/vega-lite@" + config.vega_lite_version,
             embed: "https://cdn.jsdelivr.net/npm/vega-embed@" + config.vega_embed_version
         };
+        const symbols = {
+            core: "vega",
+            lite: "vegaLite",
+            embed: "vegaEmbed"
+        }
+
+        let t0 = Date.now(), showT = t0 - 1000;
 
         // Create the platform script element and insert it.
         for (let script in scripts) {
@@ -50,8 +52,27 @@ I.boot = async function (name, resid, query, headers, config) {
                 attrs: { src: scripts[script] },
                 childOf: 'head'
             });
+
+            // It looks like we need to properly wait for symbols since
+            // something async seems to be happening inside vegaEmbed.
+            // So we wait for all dependencies in sequence as and when
+            // we insert them.
+            while (!window[symbols[script]]) {
+                let now = Date.now();
+                if (now - showT >= 1000) {
+                    console.log("Waiting for vega " + script + " to load ... (" + (now - t0) + "ms)");
+                    showT = now;
+                }
+                await sleep(100);
+            }
+
+            console.log("Vega " + script + " is ready");
         }
     }
+}
+
+I.boot = async function vegaBoot(name, resid, query, headers, config) {
+    await requireVega(I, config);
 
     I.get = async function (name, resid, query, headers) {
         if (resid === '/_doc') {
@@ -71,8 +92,12 @@ I.boot = async function (name, resid, query, headers, config) {
     // the DOM. This will have to be setup manually if we take the global
     // approach.
     I.post = async function (name, resid, query, headers, body) {
+        if (query && query.replace) {
+            cleanup(I);
+        }
         try {
-            vegaEmbed('[inai-id="' + I._self + '"]', body.spec);
+            let result = await vegaEmbed('[inai-id="' + I._self + '"]', body.spec);
+            I.view = result.view; // Store it away for finalization.
         } catch (e) {
             return { status: 500, body: e.toString() };
         }
@@ -80,10 +105,19 @@ I.boot = async function (name, resid, query, headers, config) {
         return { status: 200 };
     };
 
+    I.shutdown = async function (name, resid, query, headers) {
+        cleanup(I);
+
+        I.post = null;
+        I.get = null;
+        I.shutdown = null;
+        I.boot = vegaBoot;
+
+        return { status: 200 };
+    };
+
     // Can boot only once.
     I.boot = null;
-
-    await ensureVegaReady();
 
     // If the config already has a spec, use it to initialize the chart.
     if (config.spec) {
