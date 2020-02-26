@@ -240,10 +240,9 @@ I.boot = async function (name, resid, query, headers, config) {
                         let user = await getKnownUser(tokenInfo.user);
                         if (user.status === 200) {
                             auth.groups = user.groups;
-                        } else {
-                            auth.groups = new Set();
                         }
                     }
+                    auth.groups = auth.groups || new Set();
                     auth.groups_pat = '|' + [...auth.groups].join('|') + '|';
                     authCache.set(headers.authorization, { ts: tokenInfo.time, auth: auth });
                     return { status: 200, body: auth };

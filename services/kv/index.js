@@ -98,7 +98,7 @@ async function boot(args) {
                 return { status: 200, body: await getPrefix(name, resid, query, headers) };
             }
             if (query && query.list) {
-                return { status: 200, body: await getList(query.unique ? 'smembers' : 'lrange', name, resid, query, headers); };
+                return { status: 200, body: await getList(query.unique ? 'smembers' : 'lrange', name, resid, query, headers) };
             }
             let key = userkey(name, resid);
             if (!permittedKey(key)) { throw "Bad key"; }

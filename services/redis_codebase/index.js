@@ -29,6 +29,25 @@ function redisop(redis, opname, args) {
     });
 }
 
+// WARNING: Code duplication from server.js
+//
+// Resolve environment variable references in config values.
+// You can refer to environment variables in the config files
+// of services that are expected to run on the server side.
+function resolveEnvVar(spec) {
+    let json = JSON.stringify(spec);
+    let pat = /[$]([A-Z_0-9]+)/g;
+    json = json.replace(pat, function (match, varName) {
+        if (!(varName in process.env)) {
+            console.error("MISSING environment variable $" + varName);
+            return match;
+        }
+        console.log("Picked up env var $" + varName);
+        return process.env[varName];
+    });
+    return JSON.parse(json);
+}
+
 async function boot(args) {
     let host = (args && args.host) || '127.0.0.1';
     let port = (args && args.port) || 6380;
@@ -218,7 +237,7 @@ async function boot(args) {
                 // Get the spec and form a list of keys that must exist for us to
                 // boot the services.
                 console.log("Service", serviceName, "received. Waiting for all resources.")
-                let spec = JSON.parse(await dbget(db, branch, 'named/' + serviceName));
+                let spec = resolveEnvVar(JSON.parse(await dbget(db, branch, 'named/' + serviceName)));
                 console.assert(spec.name === serviceName, "Spec service name is '" + spec.name + "' but given '" + serviceName + "'");
                 let sched = (ref, loop) => {
                     console.log("Service", spec.name, "waiting for key", ref);
