@@ -1,4 +1,5 @@
 {
+  "mount": "/",
   "boot": [
     {
       "name": "codebase",
@@ -30,6 +31,7 @@
     "gsignin",
     "uikit",
     "bulma",
-    "bus"
+    "bus",
+    "vega"
   ]
 }

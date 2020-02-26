@@ -17,10 +17,17 @@ The job of the widget is sort of done once it is "booted".
 I.boot = async function (name, resid, query, headers, config) {
     // As per ref: https://developers.google.com/identity/sign-in/web/sign-in
 
+    let element = document.querySelector('[inai-id="' + I._self + '"]');
+    if (!element) {
+        console.error("Unattached gsignin!");
+        return { status: 500, body: 'Invalid gsignin boot' };
+    }
+
     // Create the platform script element and insert it.
     I.dom('gsignin/platformScript', {
         op: 'set',
         tag: 'script',
+        once: true,
         attrs: { src: 'https://apis.google.com/js/platform.js', async: true, defer: true },
         childOf: 'head'
     });
@@ -29,6 +36,7 @@ I.boot = async function (name, resid, query, headers, config) {
     I.dom('gsignin/meta', {
         op: 'set',
         tag: 'meta',
+        once: true,
         attrs: { name: 'google-signin-client_id', content: config.client_id },
         childOf: 'head'
     });
@@ -39,9 +47,21 @@ I.boot = async function (name, resid, query, headers, config) {
     I.dom('gsignin/btn', {
         op: 'set',
         tag: 'div',
-        attrs: { "class": 'g-signin2', "data-onsuccess": signinFnName },
+        once: true,
+        classes: 'g-signin2',
+        attrs: { "data-onsuccess": signinFnName },
         childOf: I._self
     });
+
+    async function notify(eventName) {
+        if (element.hasAttribute("inai-target")) {
+            let target = element.getAttribute("inai-target")
+            let pat = target.match(/^[/]?([^/]+)(.*)$/);
+            if (pat) {
+                await I.network(pat[1], 'post', pat[2], { event: eventName }, null, null);
+            }
+        }
+    }
 
     window[signinFnName] = async function (guser) {
         let profile = guser.getBasicProfile();
@@ -61,6 +81,8 @@ I.boot = async function (name, resid, query, headers, config) {
                 sel: 'body',
                 attrs: { token: result.body.token }
             });
+
+            notify('signin');
         }
     };
 
@@ -69,6 +91,7 @@ I.boot = async function (name, resid, query, headers, config) {
             let auth2 = gapi.auth2.getAuthInstance();
             auth2.signOut().then(function () {
                 console.log('User signed out.');
+                notify('signout');
             });
         }
         return { status: 200 };

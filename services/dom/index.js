@@ -146,7 +146,21 @@ I.boot = function (name, resid, query, headers, config) {
             if (!el) {
                 let t = q.tag && document.createElement(q.tag);
                 if (t) {
-                    el = (f => f(t, 0, 1));
+                    // Set can create an element if necessary.
+                    // To ensure it only creates the element once,
+                    // you can set the 'once' boolean in the query
+                    // to true.
+                    if (q.once) {
+                        let done = null;
+                        el = (f => {
+                            if (!done) {
+                                done = f(t, 0, 1);
+                            }
+                            return done;
+                        });
+                    } else {
+                        el = (f => f(t, 0, 1));
+                    }
                 }
             }
             if (!el) {

@@ -88,10 +88,17 @@ async function boot(args) {
     // get /path1/path2/key2
     // get /path1/path2?prefix=true 
     //      will get /path1/path2/key1 and key2 in an array.
+    // get /path1/path2?list=true
+    //      will get list of items
+    // get /path1/path2?list=true&unique=true
+    //      will get set of items
     I.get = async function (name, resid, query, headers) {
         try {
             if (query && query.prefix) {
                 return { status: 200, body: await getPrefix(name, resid, query, headers) };
+            }
+            if (query && query.list) {
+                return { status: 200, body: await getList(query.unique ? 'smembers' : 'lrange', name, resid, query, headers) };
             }
             let key = userkey(name, resid);
             if (!permittedKey(key)) { throw "Bad key"; }
@@ -116,7 +123,11 @@ async function boot(args) {
         try {
             let key = userkey(name, resid);
             if (!permittedKey(key)) { throw "Bad key"; }
-            await wdbcall('set', [dbkey(branch(headers), key), JSON.stringify(body)]);
+            if (query && query.list) {
+                await wdbcall(query.unique ? 'sadd' : 'rpush', [dbkey(branch(headers), key), ...body]);
+            } else {
+                await wdbcall('set', [dbkey(branch(headers), key), JSON.stringify(body)]);
+            }
             return { status: 200 };
         } catch (e) {
             return { status: 400, body: "Failed to set key" };
@@ -235,12 +246,31 @@ async function boot(args) {
         if (br) {
             let merged = [];
             for (let i = 0; i < result.length; i += 2) {
-                merged.push(result[i] !== null ? result[i] : result[i+1]);
+                merged.push(result[i] !== null ? result[i] : result[i + 1]);
             }
             return merged.map((v, i) => { return { k: keys[i].substring(prefixLen), v: JSON.parse(v.toString()) }; });
         } else {
             return result.map((v, i) => { return { k: keys[i].substring(prefixLen), v: JSON.parse(v.toString()) }; });
         }
+    }
+
+    async function getList(getter, name, resid, query, headers) {
+        let key = userkey(name, resid);
+        if (!permittedKey(key)) {
+            throw "Bad key";
+        }
+        let br = branch(headers);
+
+        let members = await dbcall(getter, getter === 'lrange' ? [dbkey(null, key), 0, -1] : [dbkey(null, key)]);
+        if (!members) {
+            throw "Now found";
+        }
+
+        if (!members.length) {
+            return [];
+        }
+
+        return members;
     }
 
     return { status: 200, body: "Started" };

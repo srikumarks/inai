@@ -124,9 +124,10 @@ function serviceArgs(inai_name) {
     let inai_args = null;
     try {
         let argsScript = document.querySelector('script[inai-args-for="' + inai_name + '"]');
+        let element = document.querySelector('#' + inai_name);
         if (argsScript) {
             inai_args = JSON.parse(argsScript.text);
-        } else if (element.hasAttribute('inai-args')) {
+        } else if (element && element.hasAttribute('inai-args')) {
             inai_args = JSON.parse(decodeURIComponent(element.getAttribute('inai-args')));
         }
     } catch (e) { }
