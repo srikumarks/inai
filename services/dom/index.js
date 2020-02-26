@@ -144,14 +144,22 @@ I.boot = function (name, resid, query, headers, config) {
         set: function (k, q, mountQueue) {
             let el = sel(q.sel, k);
             if (!el) {
-                // If this element should not be set again, that is
-                // to be indicated by the presence of the "once" boolean
-                // flag being set to `true`. If we see that, we ignore
-                // further set operations.
-                if (q.once) { return; }
                 let t = q.tag && document.createElement(q.tag);
                 if (t) {
-                    el = (f => f(t, 0, 1));
+                    // To ensure it only creates the element once,
+                    // you can set the 'once' boolean in the query
+                    // to true.
+                    if (q.once) {
+                        let done = null;
+                        el = (f => {
+                            if (!done) {
+                                done = f(t, 0, 1);
+                            }
+                            return done;
+                        });
+                    } else {
+                        el = (f => f(t, 0, 1));
+                    }
                 }
             }
             if (!el) {

@@ -29,45 +29,47 @@ function cleanup(I) {
 }
 
 async function requireVega(I, config) {
-    if (!window.inaiVegaScriptsAdded) {
-        window.inaiVegaScriptsAdded = true;
-        const scripts = {
-            core: "https://cdn.jsdelivr.net/npm/vega@" + config.vega_core_version,
-            lite: "https://cdn.jsdelivr.net/npm/vega-lite@" + config.vega_lite_version,
-            embed: "https://cdn.jsdelivr.net/npm/vega-embed@" + config.vega_embed_version
-        };
-        const symbols = {
-            core: "vega",
-            lite: "vegaLite",
-            embed: "vegaEmbed"
-        }
+    if (window.inaiVegaScriptsAdded) {
+        return true;
+    }
 
-        let t0 = Date.now(), showT = t0 - 1000;
+    window.inaiVegaScriptsAdded = true;
+    const scripts = {
+        core: "https://cdn.jsdelivr.net/npm/vega@" + config.vega_core_version,
+        lite: "https://cdn.jsdelivr.net/npm/vega-lite@" + config.vega_lite_version,
+        embed: "https://cdn.jsdelivr.net/npm/vega-embed@" + config.vega_embed_version
+    };
+    const symbols = {
+        core: "vega",
+        lite: "vegaLite",
+        embed: "vegaEmbed"
+    }
 
-        // Create the platform script element and insert it.
-        for (let script in scripts) {
-            I.dom('vega/' + script, {
-                op: 'set',
-                tag: 'script',
-                attrs: { src: scripts[script] },
-                childOf: 'head'
-            });
+    let t0 = Date.now(), showT = t0 - 1000;
 
-            // It looks like we need to properly wait for symbols since
-            // something async seems to be happening inside vegaEmbed.
-            // So we wait for all dependencies in sequence as and when
-            // we insert them.
-            while (!window[symbols[script]]) {
-                let now = Date.now();
-                if (now - showT >= 1000) {
-                    console.log("Waiting for vega " + script + " to load ... (" + (now - t0) + "ms)");
-                    showT = now;
-                }
-                await sleep(100);
+    // Create the platform script element and insert it.
+    for (let script in scripts) {
+        I.dom('vega/' + script, {
+            op: 'set',
+            tag: 'script',
+            attrs: { src: scripts[script] },
+            childOf: 'head'
+        });
+
+        // It looks like we need to properly wait for symbols since
+        // something async seems to be happening inside vegaEmbed.
+        // So we wait for all dependencies in sequence as and when
+        // we insert them.
+        while (!window[symbols[script]]) {
+            let now = Date.now();
+            if (now - showT >= 1000) {
+                console.log("Waiting for vega " + script + " to load ... (" + (now - t0) + "ms)");
+                showT = now;
             }
-
-            console.log("Vega " + script + " is ready");
+            await sleep(100);
         }
+
+        console.log("Vega " + script + " is ready");
     }
 }
 
