@@ -146,6 +146,7 @@ I.boot = function (name, resid, query, headers, config) {
             if (!el) {
                 let t = q.tag && document.createElement(q.tag);
                 if (t) {
+                    // Set can create an element if necessary.
                     // To ensure it only creates the element once,
                     // you can set the 'once' boolean in the query
                     // to true.
