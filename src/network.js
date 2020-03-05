@@ -303,8 +303,6 @@ Gets/sets the full metadata object form associated with the name.
     // The body is expected to be the full text of the code.
     serviceObj.put = async function (name, resid, query, headers, body) {
         try {
-            // WARNING: This should be dealt with via a VM object
-            // on the server side.
             let code = '(function ' + (isNodeJS ? '(I, console)' : '(I, console, window, document)') + ' {\n' + body + '\n})';
             let serviceDef = inaiEval(resid, code);
             if (typeof (serviceDef) !== 'function') {
