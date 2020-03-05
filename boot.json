@@ -32,6 +32,7 @@
     "uikit",
     "bulma",
     "bus",
-    "vega"
+    "vega",
+    "ingress"
   ]
 }
