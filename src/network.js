@@ -306,7 +306,7 @@ Gets/sets the full metadata object form associated with the name.
             // WARNING: This should be dealt with via a VM object
             // on the server side.
             let code = '(function ' + (isNodeJS ? '(I, console)' : '(I, console, window, document)') + ' {\n' + body + '\n})';
-            let serviceDef = eval(code);
+            let serviceDef = inaiEval(resid, code);
             if (typeof (serviceDef) !== 'function') {
                 return bad_request('Service must provide function body.');
             }
@@ -382,5 +382,24 @@ function server_error(explanation) {
     return { status: 503, body: explanation };
 }
 
+function inaiEval(name, code) {
+    if (isNodeJS) {
+        // Make code execution in NodeJS environment a bit controlled
+        // using the vm module and running in a restricted context.
+        let inaiRequire = require;
+        let vm = inaiRequire('vm');
+        let context = vm.createContext({
+            setTimeout: setTimeout
+        });
+        let s = new vm.Script(code, { filename: name });
+        return s.runInContext(context);
+    }
+
+    if (isBrowser) {
+        return eval(code);
+    }
+
+    throw new Error("Unsupported environment");
+}
 
 module.exports.createNode = createNode;

@@ -1,10 +1,6 @@
 
 I.boot = async function mainBoot(name, resid, query, headers, config) {
 
-    // Kill the server upon unhandled rejection.
-    // This is so we're ahead of the deprecation curve.
-    process.on('unhandledRejection', up => { throw up })
-
     let servers = {};
     let nextServerID = 1;
 

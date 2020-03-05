@@ -38,12 +38,12 @@ function resolveEnvVar(spec) {
     let json = JSON.stringify(spec);
     let pat = /[$]([A-Z_0-9]+)/g;
     json = json.replace(pat, function (match, varName) {
-        if (!(varName in process.env)) {
+        if (!(varName in I.env)) {
             console.error("MISSING environment variable $" + varName);
             return match;
         }
         console.log("Picked up env var $" + varName);
-        return process.env[varName];
+        return I.env[varName];
     });
     return JSON.parse(json);
 }
