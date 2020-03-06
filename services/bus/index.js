@@ -89,14 +89,15 @@ I.boot = async function boot(name, resid, query, headers, config) {
 
 
     // DELETE /_subs/id
-    // Removes the subscription.
+    // Ensures that that subscription with the given id 
+    // no longer exists.
     I.delete = function (name, resid, query, headers) {
         let subs = resid.match(/^[/]_subs[/]([^/]+)$/);
         if (subs) {
             let id = subs[1];
             let keys = id2keys.get(id);
             if (!keys) {
-                return { status: 404 };
+                return { status: 200 };
             }
             for (let k of keys) {
                 bus.get(k).delete(id);
