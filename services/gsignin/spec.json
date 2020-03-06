@@ -6,6 +6,6 @@
     "browser"
   ],
   "config": {
-    "client_id": "779071142308-252q5rg9m8r43ha6518r4nsjf56qa1dk.apps.googleusercontent.com"
+    "client_id": "$INAI_GAUTH_CLIENT"
   }
 }
