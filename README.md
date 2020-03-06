@@ -62,7 +62,8 @@ applications - both frontend and backend.
 2. Clone the repository.
 2. `npm install` to get all the dependencies.
 3. `make` to build everything and "deploy" it to a local redis instance.
-4. `npm start` to start the server
+4. Ensure your own ids and secrets are reflected in the `start` script.
+5. `./start` to start the server.
 
 That will get you a sample application which supports google authenticated
 login .. to do absolutely nothing interesting except if you're a software
