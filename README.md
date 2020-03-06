@@ -216,14 +216,15 @@ If you have buttons and such active elements, you can capture their events
 and have them sent to target services, which much be managing other elements.
 
 ```
-<button inai_events="click,mouseover", inai_target="/meow/touch">Greet me!</button>
+<button inai-events="click,mouseover" inai-target="/meow/touch">Greet me!</button>
 ```
 
-The `inai_events` is a comma-separated list of event names that will be
+The `inai-events` is a comma-separated list of event names that will be
 needed. These events will be captured and sent to the service target
-identified by `inai_target`, where the first path component identifies the
+identified by `inai-target`, where the first path component identifies the
 service by name. The `resid` in the call to the service will contain the
-remainder of the path name.
+remainder of the path name. For `button` elements, `click` is assumed even
+if `inai-events` is absent.
 
 What's more, the minimal framework code will watch the DOM for changes
 and if any new components are declared with `inai` attributes, it will
