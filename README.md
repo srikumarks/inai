@@ -29,7 +29,7 @@ applications - both frontend and backend.
 1. Live code update. If a "service" can only be accessed via an in-process virtual
    "network", then it will be easy to replace that service on the fly - both
    server side and client side. Basically, I hate seeing a "this site is down
-   for maintenance" page.
+   for maintenance" page. The REST constraints make this realizable.
 
 2. Proxies. Such services can easily proxy requests over the network to remote
    services without change of programming model.
