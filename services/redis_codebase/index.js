@@ -176,7 +176,7 @@ async function boot(args) {
                     let assetId = pat[2];
                     await Promise.all([
                         dbset(db, branch, 'assets/' + assetId, body),
-                        dbset(db, branch, 'assets/' + assetId + '/meta/type')
+                        dbset(db, branch, 'assets/' + assetId + '/meta/type', type)
                     ]);
                     return { status: 200 };
                 }
