@@ -265,7 +265,7 @@ Gets/sets the full metadata object form associated with the name.
             // shutdown the existing one first.
             let old_I = services.get(id);
             await serviceObj.network(name, 'delete', codeId + '/instances/' + id, null, null, null);
-            if (query.retain_state) { I = old_I; }
+            if (query && query.retain_state) { I = old_I; }
         } else {
             id = id || random(8);
         }
