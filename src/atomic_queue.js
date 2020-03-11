@@ -52,7 +52,13 @@ function AtomicQueue() {
             if (closed) { return reject('closed'); }
             queue.post(() => {
                 let p = pfunc();
-                return (p && p.then ? p.then(resolve).catch(reject) : p);
+                if (p && p.then) {
+                    // Note that other continuations depending on p
+                    // will need to be fired off independent of the
+                    // qtomic queue itself.
+                    p.then(resolve).catch(reject);
+                }
+                return p;
             });
         });
     };
