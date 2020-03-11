@@ -44,7 +44,7 @@ function bootFromSpec(branch, bootSpec) {
                 console.error("Failed to boot service " + service);
                 continue;
             }
-            spec = spec.body;
+            spec = resolveEnvVar(spec.body);
             if (spec.disabled || spec.env.indexOf('server') < 0) {
                 console.log("Skipping", spec.name);
             } else {
