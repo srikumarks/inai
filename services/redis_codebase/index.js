@@ -249,10 +249,20 @@ async function boot(args) {
                         console.log("Service [" + spec.name + "] loaded, but skipping due to disabled:" + spec.disabled + " or env:" + spec.env);
                         return true;
                     }
-                    console.log("Booting service " + spec.name);
+                    console.log("Updating service " + spec.name);
                     let codeId = await dbget(db, branch, 'named/' + spec.name + '/code');
                     let code = await dbget(db, branch, 'code/' + codeId);
-                    await I.network('_services', 'put', codeId, null, null, code);
+                    let r1 = await I.network('_services', 'put', codeId, {mode:'update'}, null, code);
+                    if (r1.status !== 200) {
+                        console.error("Failed to load code for " + codeId);
+                        return;
+                    }
+                    if (r1.body.instances.length > 0) {
+                        // Existing instances already updated. No need to boot
+                        // the service.
+                        console.log("All instances of " + codeId + " are now updated.");
+                        return;
+                    }
                     let result = await I.network('_services', 'post', codeId + '/instances', null, null, spec.config);
                     if (result.status < 200 || result.status >= 300) {
                         console.error("Failed to boot service [" + spec.name + "]");

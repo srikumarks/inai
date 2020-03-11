@@ -48,11 +48,9 @@ function createNode(options) {
 
     // DNS is currently simply a map of user-friendly names to 
     // service IDs ... which are hashes.
+    //
+    // OWNED BY `_dns` service
     let dns = new Map();
-
-    // The service map is used to lookup the service object given
-    // the service id.
-    let services = new Map();
 
     // Orphan services are those that have no names mapping to them.
     // NOTE: They may not be really orphans, because some service
@@ -60,9 +58,15 @@ function createNode(options) {
     // using the DNS. Not entirely sure whether such service are useful
     // and should be permitted but making a note of the orphan services
     // seems to be a useful thing to do.
+    //
+    // OWNED BY `_dns` service
     let orphanServices = new Set();
 
-    // Maps code ids to {serviceDef:, instances:}
+    // The service map is used to lookup the service object given
+    // the service id.
+    let services = new Map();
+
+    // Maps code ids to {serviceDef:Function, instances:Set<id>, bootConfig:Map<id,Obj>}
     let codeBase = new Map();
 
     let reqid = 1; // Increments for every request.
@@ -223,14 +227,14 @@ Gets/sets the full metadata object form associated with the name.
     serviceObj.get = function (name, resid, query, headers) {
         // Get all instances.
         if (resid === '/instances') {
-            return ok(Array.from(services.keys()));
+            return ok([...services.keys()]);
         }
 
         // Get instances of a module with the given code ID.
         // GET <codeid>/instances
         let m = resid.match(pathCodeInstances);
         if (m) {
-            return ok(Array.from(codeBase.get(m[1]).instances.entries()));
+            return ok([...codeBase.get(m[1]).instances]);
         }
 
         return not_found();
@@ -261,8 +265,27 @@ Gets/sets the full metadata object form associated with the name.
         let I = I_base;
 
         if (id && services.has(id)) {
-            // We're replacing an existing service. We'll have to
-            // shutdown the existing one first.
+            // We're replacing an existing service. We'll have to shutdown the
+            // existing one first.
+            //
+            // NOTE: This shutdown shouldn't in general be done in the middle
+            // of other operations in order to be nice to other dependent
+            // services. However, dependent services are expected to be able to
+            // catch errors and handle them when they occur and such a
+            // "shutdown in the middle" will result in such a handle-able
+            // error. In such cases, the dependent services should retry the
+            // request or take some other appropriate action depending on the
+            // context. If we try to be too nice to dependent services about this,
+            // we end up bloating up the complexity of the sytem and also end up
+            // compromising its performance by introducing coordination mechanisms
+            // that will not be used in the normal course of operations.
+            //
+            // All that assumes that upgrades happen relatively infrequently. If
+            // that assumption is invalid - for example when a team updates code
+            // every 15mins or so, you may not want any hanging requests to be
+            // interrupted that frequently. Again, if requests are short lived, this
+            // should usually not be a problem. But if they're longer, we may need
+            // mechanisms in place that take care of the necessary waiting.
             let old_I = services.get(id);
             await serviceObj.network(name, 'delete', codeId + '/instances/' + id, null, null, null);
             if (query && query.retain_state) { I = old_I; }
@@ -270,6 +293,13 @@ Gets/sets the full metadata object form associated with the name.
             id = id || random(8);
         }
 
+        // First boot the service at a temp id.
+        // Then swap that id for the real id atomically.
+        let tmpId = id.split('_')[0];
+        while (services.has(tmpId)) {
+            tmpId = id + '_' + random(8);
+        }
+        
         // Any existing service has shutdown now. We can safely create
         // the next one.
         //
@@ -289,13 +319,25 @@ Gets/sets the full metadata object form associated with the name.
         // will leak codeInfo into the serviceDef function. So don't do it.
         if (isBrowser) { serviceDef(I2, logger, window, document); } else { serviceDef(I2, logger); }
 
+        services.set(tmpId, I2);
+        codeInfo.instances.add(tmpId);
+        codeInfo.bootConfig.set(tmpId, body);
+
+        try {
+            let result = await serviceObj.network(tmpId, 'boot', '/', null, null, body);
+            if (result.status !== 200) {
+                return result;
+            }
+        } finally {
+            services.delete(tmpId);
+            codeInfo.instances.delete(tmpId);
+            codeInfo.bootConfig.delete(tmpId);
+        }
+        
+        // Introduce the new service atomically.
         services.set(id, I2);
         codeInfo.instances.add(id);
-
-        let result = await serviceObj.network(id, 'boot', '/', null, null, body);
-        if (result.status !== 200) {
-            return result;
-        }
+        codeInfo.bootConfig.set(id, body);
         return ok(id);
     };
 
@@ -308,8 +350,23 @@ Gets/sets the full metadata object form associated with the name.
             if (typeof (serviceDef) !== 'function') {
                 return bad_request('Service must provide function body.');
             }
-            codeBase.set(resid, {serviceDef: serviceDef, instances: new Set()});
-            return ok();
+
+            // If the codeId already exists, then replace the code of any existing instances.
+            if (query && query.mode === 'update') {
+                let info = codeBase.get(resid);
+                if (info) {
+                    info.serviceDef = serviceDef;
+                    for (let id of info.instances) {
+                        console.log('Updating "' + resid + '" service with id=' + id);
+                        await I.network('_services', 'post', resid + '/instances', {id: id}, null, info.bootConfig.get(id));
+                    }
+                    return ok({instances: [...info.instances]});
+                }
+            }
+
+            // New codebase. Setup its info record.
+            codeBase.set(resid, {serviceDef: serviceDef, instances: new Set(), bootConfig: new Map()});
+            return ok({instances: []});
         } catch (e) {
             return bad_request(e.toString());
         }
