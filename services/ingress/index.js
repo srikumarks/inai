@@ -68,7 +68,7 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
                     let code = (await I.network('_codebase', 'get', '/code/' + spec.codeId, null, maybeBranch(req))).body;
                     res.set('content-type', 'text/plain');
                     if (spec.config) {
-                        res.set('inai-args', encodeURIComponent(JSON.stringify(spec.config)));
+                        res.set('inai-args', encodeURIComponent(JSON.stringify(resolveEnvVar(spec.config, I.env))));
                     }
                     res.status(200).send(code);
                     return;
@@ -300,6 +300,24 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
             });
         });
     }
+
+    // Resolve environment variable references in config values.
+    // You can refer to environment variables in the config files
+    // of services that are expected to run on the server side.
+    function resolveEnvVar(spec, env) {
+        let json = JSON.stringify(spec);
+        let pat = /[$]([A-Z_0-9]+)/g;
+        json = json.replace(pat, function (match, varName) {
+            if (!(varName in env)) {
+                console.error("MISSING environment variable $" + varName);
+                return match;
+            }
+            console.log("Picked up env var $" + varName);
+            return env[varName];
+        });
+        return JSON.parse(json);
+    }
+
 
     I.shutdown = async function (name, resid, query, headers) {
         I.boot = mainBoot;
