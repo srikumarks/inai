@@ -1,0 +1,16 @@
+{
+  "name": "hmac",
+  "disabled": false,
+  "public": true,
+  "env": [
+    "server"
+  ],
+  "config": {
+    "credentials": {
+        "thumbsignin": {
+            "accessKeyId": "$INAI_THUMBSIGIN_ACCESSKEYID",
+            "secretKey": "$INAI_THUMBSIGNIN_SECRETKEY"
+        }
+    }
+  }
+}

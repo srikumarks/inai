@@ -1,0 +1,54 @@
+
+const _doc = `
+# HMAC request signer service
+
+Based on the Amazon Web Services sample code.
+
+Make a \'post\' request to \'/sign\` with a body like -
+
+\`\`\`
+{"service": "service_name", "request": {...request JSON to sign...}}
+\`\`\`
+
+- to get a signature string as the result body.
+
+The \`service_name\` must be one of the registered names in the
+\`hmac\` service's \`config.credentials\` hash. The following
+service names are available -
+
+{{service_names}}
+`;
+
+let hmacSigner = require('./hmac_signer');
+
+I.boot = async function (name, resid, query, headers, config) {
+
+    const credentials = config.credentials;
+    
+    I.post = function (name, resid, query, headers, body) {
+        if (resid === '/sign') {
+            if (body && (body.service in credentials) && body.request) {
+                return { status: 200, body: hmacSigner.sign(body.request, credentials[body.service]) };
+            }
+            return { status: 400, body: 'Malformed request body' };
+        }
+        return { status: 404, body: 'Not found' };
+    };
+
+    I.get = function (name, resid, query, headers) {
+        if (resid === '/_doc') {
+            return {
+                status: 200,
+                headers: { 'content-type': 'text/markdown' },
+                body: _doc.replace('{{service_names}}', Object.keys(credentials).map(c => '- ' + c).join('\n'))
+            };
+        }
+
+        return { status: 404, body: 'Not found' };
+    };
+
+    // Can boot only once.
+    I.boot = null;
+
+    return { status: 200, body: "Booted" };
+};
