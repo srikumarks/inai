@@ -8,7 +8,7 @@
   "config": {
     "credentials": {
         "thumbsignin": {
-            "accessKeyId": "$INAI_THUMBSIGIN_ACCESSKEYID",
+            "accessKeyId": "$INAI_THUMBSIGNIN_ACCESSKEYID",
             "secretKey": "$INAI_THUMBSIGNIN_SECRETKEY",
             "headers": {
                 "date_lc": "x-ts-date",

@@ -34,6 +34,7 @@
     "bus",
     "vega",
     "ingress",
+    "hmac",
     "thumbsignin",
     "tsAuth"
   ]

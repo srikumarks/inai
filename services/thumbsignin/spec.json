@@ -1,6 +1,6 @@
 {
   "name": "thumbsignin",
-  "disabled": true,
+  "disabled": false,
   "public": true,
   "env": [
     "browser"

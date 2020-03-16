@@ -4,6 +4,8 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
     let servers = {};
     let nextServerID = 1;
 
+    debugger;
+
     I.post = async function (name, resid, query, headers, body) {
 
         let serverRefID = nextServerID++;
@@ -164,12 +166,19 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
                 if (!json.headers) {
                     json.headers = {};
                 }
+                for (let k in req.headers) {
+                    json.headers[k] = req.headers[k];
+                }
                 if (req.auth.branch) {
                     json.headers['inai-branch'] = req.auth.branch;
                 }
                 let result = await I.network(json.name, json.verb, json.resid, json.query, json.headers, json.body);
 
                 // This is a proxy call, so the entire response needs to be passed back as the body.
+                if (result.headers) {
+                    transferCookies(result.headers, res);
+                    res.set(result.headers);
+                }
                 res.json(result);
             } else {
                 res.status(404).send("Not found"); // Don't reveal the _proxy URL as valid unnecessarily.
@@ -180,6 +189,7 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
         // a service marked "public". So check that and pass on the request.
         function installPublicHandler() {
             router.use(async function (req, res, next) {
+                debugger;
                 let m = req.path.match(/^[/]?([^/]+)(.*)$/); //  /(<serviceid>)(/<resid>)
                 if (!m) { return res.status(404).send("Not found"); }
                 let serviceName = m[1];
@@ -240,9 +250,20 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
             return !meta || !(meta.env) || (meta.env.indexOf(profile) >= 0);
         }
 
+        function transferCookies(headers, res) {
+            if (headers && 'set-cookie' in headers) {
+                let cookies = headers['set-cookie'];
+                delete headers['set-cookie'];
+                for (let cookie of cookies) {
+                    res.cookie(cookie.name, cookie.value, cookie);
+                }
+            }
+        }
+
         function sendReply(res, reply) {
             res.status(reply.status);
             if (reply.headers) {
+                transferCookies(reply.headers, res);
                 res.set(reply.headers);
             }
             res.send(reply.body);

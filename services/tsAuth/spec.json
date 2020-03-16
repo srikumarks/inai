@@ -1,6 +1,6 @@
 {
   "name": "tsAuth",
-  "disabled": true,
+  "disabled": false,
   "public": true,
   "env": [
     "server"

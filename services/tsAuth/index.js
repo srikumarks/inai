@@ -22,6 +22,8 @@ I.boot = async function (name, resid, query, headers, config) {
 
     const redirectURL = config.redirectURL;
 
+    debugger;
+
     I.get = async function (name, resid, query, headers) {
         if (resid === '/_doc') {
             return {
@@ -31,16 +33,21 @@ I.boot = async function (name, resid, query, headers, config) {
             };
         }
 
-        return { status: 404 };
-    };
+        if (resid === '/authenticate' || resid === '/register') {
+            let userId = null;
+            debugger;
+            let authResult = await I.network('auth', 'post', '/check', null, headers);
+            if (authResult.status === 200) {
+                userId = authResult.body.user;
+            } else if (resid === '/register') {
+                // User must be signed in already.
+                return { status: 503, body: "User needs to be signed in to register for TSI." };
+            }
 
-    I.post = async function (name, resid, query, headers, body) {
-        
-        if (resid === '/authenticate') {
             let request = {
                 method: 'get',
                 headers: {},
-                url: tsAPI + '/authenticate'
+                url: tsAPI + '/ts/secure' + resid + (userId ? '?userId=' + userId : '')
             };
 
             let response = await I.network('hmac', 'post', '/sign', null, null, {
@@ -53,6 +60,7 @@ I.boot = async function (name, resid, query, headers, config) {
             }
 
             request = response.body.signedRequest;
+            debugger;
 
             let json = await getJson(request);
 

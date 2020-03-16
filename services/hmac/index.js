@@ -25,6 +25,7 @@ let HmacSigner = require('./hmac_signer');
 I.boot = async function (name, resid, query, headers, config) {
 
     const credentials = config.credentials;
+    debugger;
     const servicesList = Object.keys(credentials).map(c => '- ' + c).join('\n');
     const docResponse = {
         status: 200,
@@ -35,7 +36,7 @@ I.boot = async function (name, resid, query, headers, config) {
     I.post = function (name, resid, query, headers, body) {
         if (resid === '/sign') {
             if (body && (body.service in credentials) && body.request) {
-                return { status: 200, body: { request: HmacSigner.sign(body.request, credentials[body.service]) } };
+                return { status: 200, body: { signedRequest: HmacSigner.sign(body.request, credentials[body.service]) } };
             }
             return { status: 400, body: 'Malformed request body' };
         }

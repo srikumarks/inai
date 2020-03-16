@@ -47,11 +47,20 @@ I.boot = async function (name, resid, query, headers, config) {
     let knownApps = config.knownApps;
     let kSystemId = config.systemId;
     const kInaiAuthCookieName = config.cookieName || 'inai-auth-token';
-    const kTokenCookieRE = new RegExp('[;]' + kInaiAuthCookieName + '=["]?([^"]+)["]?');
+    const kTokenCookieRE = new RegExp('[;]' + kInaiAuthCookieName + '=([^;]+)[;]');
 
     function headersWithTokenCookie(token, headers) {
         headers = headers || {};
-        headers['set-cookie'] = kInaiAuthCookieName + '="' + token + '" Max-Age=86400 Secure SameSite=Strict';
+        headers['set-cookie'] = [
+            {
+                name: kInaiAuthCookieName,
+                value: token,
+                maxAge: 86400000,
+                path: '/',
+                secure: false,
+                sameSite: 'strict'
+            }
+        ];
         return headers;
     }
 
@@ -251,6 +260,8 @@ I.boot = async function (name, resid, query, headers, config) {
         return null;
     }
 
+    debugger;
+
     I.post = async function (name, resid, query, headers, body) {
         let givenAuthorization = extractAuthTokenFromHeaders(headers);
         try {
@@ -261,7 +272,6 @@ I.boot = async function (name, resid, query, headers, config) {
                     // and the parsed token info is kept for the duration of
                     // the token. This means the group calculations are also
                     // preserved for the period of token validity.
-                    debugger;
                     if (!givenAuthorization) { break; }
                     let c_auth = authCache.get(givenAuthorization);
                     if (c_auth && c_auth.ts > I.earliest_renew_time_ms && Date.now() < c_auth.ts + I.token_expiry_ms) {
@@ -279,6 +289,9 @@ I.boot = async function (name, resid, query, headers, config) {
                     let tokenInfo = info;
                     let headers = headersWithTokenCookie(info.token, {});
                     let auth = {};
+                    for (let k in tokenInfo) {
+                        auth[k] = tokenInfo[k];
+                    }
                     let p = knownApps[tokenInfo.app].perms;
                     for (let k in p) {
                         auth[k] = p[k];
@@ -295,6 +308,7 @@ I.boot = async function (name, resid, query, headers, config) {
                     return { status: 200, headers: headers, body: auth };
                 }
                 case '/token': {
+                    debugger;
                     if (!query || !query.app || !query.salt || !query.time || !query.sig) {
                         // User wants to renew a token. You can just POST to /token
                         // with the appropriate expired token in the authorization header
