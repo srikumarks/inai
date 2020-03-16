@@ -167,8 +167,10 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
                 if (req.auth.branch) {
                     json.headers['inai-branch'] = req.auth.branch;
                 }
-                let reply = await I.network(json.name, json.verb, json.resid, json.query, json.headers, json.body);
-                res.json(reply);
+                let result = await I.network(json.name, json.verb, json.resid, json.query, json.headers, json.body);
+
+                // This is a proxy call, so the entire response needs to be passed back as the body.
+                res.json(result);
             } else {
                 res.status(404).send("Not found"); // Don't reveal the _proxy URL as valid unnecessarily.
             }

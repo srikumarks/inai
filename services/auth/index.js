@@ -46,6 +46,15 @@ I.boot = async function (name, resid, query, headers, config) {
     // TODO: Use the codebase store for app permissions too.
     let knownApps = config.knownApps;
     let kSystemId = config.systemId;
+    const kInaiAuthCookieName = config.cookieName || 'inai-auth-token';
+    const kTokenCookieRE = new RegExp('[;]' + kInaiAuthCookieName + '=["]?([^"]+)["]?');
+
+    function headersWithTokenCookie(token, headers) {
+        headers = headers || {};
+        headers['set-cookie'] = kInaiAuthCookieName + '="' + token + '" Max-Age=86400 Secure SameSite=Strict';
+        return headers;
+    }
+
     let knownUsers = {};
     let knownGroups = {};
     let authCache = new Map();
@@ -196,10 +205,10 @@ I.boot = async function (name, resid, query, headers, config) {
     }
 
     function validatedTokenInfo(info) {
-        if (!info) { return null; }
-        if (info.sig !== info.calcSig) { return null; }
-        if (Date.now() >= info.time + I.token_expiry_ms) { return null; }
-        return info;
+        if (!info) { return {status:'invalid'}; }
+        if (info.sig !== info.calcSig) { return {status: 'invalid'}; }
+        if (Date.now() >= info.time + I.token_expiry_ms) { return {status:'expired', info: info}; }
+        return {status:'ok',info:info};
     }
 
     I.delete = function (name, resid, query, headers) {
@@ -215,7 +224,35 @@ I.boot = async function (name, resid, query, headers, config) {
         return { status: 404 };
     };
 
+
+    function extractAuthTokenFromHeaders(headers) {
+        // The "Authorization" header takes precedence
+        // over the "inai-auth-token" cookie that may be
+        // present.
+        if (headers && headers.authorization) {
+            return headers.authorization;
+        }
+        let cookiesStr = headers && headers.cookie;
+        if (cookiesStr) {
+            // The token cookie regular expression is a bit strict in checking
+            // that the cookie entry is both preceded and succeeded by a ';'.
+            // To ensure that, we force the separator to be ';' and ensure that
+            // the entire string itself is surrounded by ';' so that the cookie
+            // RE pattern match won't have security gaps.
+            cookiesStr = ';' + cookiesStr.trim().replace(/;[\s]*/g, ';') + ';';
+            let pat = cookiesStr.match(kTokenCookieRE);
+            if (pat) {
+                // Normalize the pattern to be the same as the
+                // structure of the "Authorization" header.
+                return 'Bearer: ' + pat[1];
+            }
+        }
+
+        return null;
+    }
+
     I.post = async function (name, resid, query, headers, body) {
+        let givenAuthorization = extractAuthTokenFromHeaders(headers);
         try {
             switch (resid) {
                 case '/check': {
@@ -224,13 +261,23 @@ I.boot = async function (name, resid, query, headers, config) {
                     // and the parsed token info is kept for the duration of
                     // the token. This means the group calculations are also
                     // preserved for the period of token validity.
-                    if (!headers || !headers.authorization) { break; }
-                    let c_auth = authCache.get(headers.authorization);
+                    debugger;
+                    if (!givenAuthorization) { break; }
+                    let c_auth = authCache.get(givenAuthorization);
                     if (c_auth && c_auth.ts > I.earliest_renew_time_ms && Date.now() < c_auth.ts + I.token_expiry_ms) {
                         return { status: 200, body: c_auth.auth };
                     }
-                    let tokenInfo = validatedTokenInfo(unpackAuthToken(headers.authorization));
-                    if (!tokenInfo) { throw 'unauthorized'; }
+                    let {status, info} = validatedTokenInfo(unpackAuthToken(givenAuthorization));
+                    if (status === 'expired') { 
+                        let renew = await I.post(name, '/token', info, null, null);
+                        if (renew.status !== 200) { throw 'token_expired'; }
+                        status = 'ok';
+                        info = renew.body;
+                        throw 'token_expired';
+                    }
+                    if (status !== 'ok') { throw 'unauthorized'; }
+                    let tokenInfo = info;
+                    let headers = headersWithTokenCookie(info.token, {});
                     let auth = {};
                     let p = knownApps[tokenInfo.app].perms;
                     for (let k in p) {
@@ -244,8 +291,8 @@ I.boot = async function (name, resid, query, headers, config) {
                     }
                     auth.groups = auth.groups || new Set();
                     auth.groups_pat = '|' + [...auth.groups].join('|') + '|';
-                    authCache.set(headers.authorization, { ts: tokenInfo.time, auth: auth });
-                    return { status: 200, body: auth };
+                    authCache.set(givenAuthorization, { ts: tokenInfo.time, auth: auth });
+                    return { status: 200, headers: headers, body: auth };
                 }
                 case '/token': {
                     if (!query || !query.app || !query.salt || !query.time || !query.sig) {
@@ -261,7 +308,7 @@ I.boot = async function (name, resid, query, headers, config) {
                         // have to sign in again to get a new token. This means we can 
                         // in one go invalidate a whole bunch of tokens in case of some fraud
                         // from the backend without the intervention of a database.
-                        let info = unpackAuthToken(headers.authorization);
+                        let info = unpackAuthToken(givenAuthorization);
                         if (!info || info.sig !== info.calcSig || info.time < I.earliest_renew_time_ms) {
                             return { status: 401, body: 'Bad token' };
                         }
@@ -275,15 +322,17 @@ I.boot = async function (name, resid, query, headers, config) {
                                 time
                         );
                         let sig = hmac(knownApps[kSystemId].secret, prefix);
+                        let token = prefix + '.' + sig;
                         return {
                             status: 200,
+                            headers: headersWithTokenCookie(token, {}),
                             body: {
                                 branch: info.branch,
                                 user: info.user,
                                 app: info.app,
                                 salt: salt,
                                 time: time,
-                                token: prefix + '.' + sig
+                                token: token
                             }
                         };
                     }
@@ -296,13 +345,15 @@ I.boot = async function (name, resid, query, headers, config) {
                     let salt = random(10);
                     let sigstr = query.app + '.' + salt + '.' + now;
                     let sig = hmac(knownApps[kSystemId].secret, sigstr);
+                    let token = sigstr + '.' + sig;
                     return {
                         status: 200,
+                        headers: headersWithTokenCookie(token, {}),
                         body: {
                             app: query.app,
                             salt: salt,
                             time: now,
-                            token: sigstr + '.' + sig
+                            token: token
                         }
                     };
                 }
@@ -342,8 +393,8 @@ I.boot = async function (name, resid, query, headers, config) {
                     let user = body.user;
                     let token = body.token;
                     let userid = hmac(knownApps[kSystemId].secret, JSON.stringify([user.iss, user.sub, user.email]));
-                    let info = validatedTokenInfo(unpackAuthToken(headers && headers.authorization));
-                    if (!info) { throw 'forbidden'; }
+                    let {status,info} = validatedTokenInfo(unpackAuthToken(givenAuthorization));
+                    if (!info || status !== 'ok') { throw 'forbidden'; }
                     let userTokenPrefix = [userid, info.app, newSalt(), Date.now()].join('.');
                     let userTokenSig = hmac(knownApps[kSystemId].secret, userTokenPrefix);
                     let userToken = userTokenPrefix + '.' + userTokenSig;
@@ -358,6 +409,7 @@ I.boot = async function (name, resid, query, headers, config) {
 
                     return {
                         status: 200,
+                        headers: headersWithTokenCookie(userToken, {}),
                         body: {
                             user: userid,
                             app: info.app,
@@ -366,8 +418,8 @@ I.boot = async function (name, resid, query, headers, config) {
                     };
                 }
                 case '/branches': {
-                    let info = validatedTokenInfo(unpackAuthToken(headers && headers.authorization));
-                    if (!info || !info.user || !knownUsers[info.user]) {
+                    let {status,info} = validatedTokenInfo(unpackAuthToken(givenAuthorization));
+                    if (status !== 'ok' || !info || !info.user || !knownUsers[info.user]) {
                         throw 'forbidden';
                     }
                     let branch = newBranch(knownApps[kSystemId].secret, info.user);
@@ -386,6 +438,7 @@ I.boot = async function (name, resid, query, headers, config) {
                     };
                     return {
                         status: 200,
+                        headers: headersWithTokenCookie(token, {}),
                         body: {
                             branch: branch,
                             user: info.user,

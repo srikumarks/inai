@@ -68,10 +68,10 @@ RequestSigner.prototype.prepareRequest = function () {
 		headers["Content-Length"] = Buffer.byteLength(JSON.stringify(request.body));
 	}
 
-	if (headers["X-Ts-Date"] || headers["x-ts-date"]) {
-		this.datetime = headers["X-Ts-Date"] || headers["x-ts-date"];
+	if (headers[this.credentials.headers.date_uc] || headers[this.credentials.headers.date_lc]) {
+		this.datetime = headers[this.credentials.headers.date_uc] || headers[this.credentials.headers.date_lc];
 	} else {
-		headers["X-Ts-Date"] = this.getDateTime();
+		headers[this.credentials.headers.date_uc] = this.getDateTime();
 	}
 	delete headers.Authorization;
 	delete headers.authorization;

@@ -19,12 +19,13 @@ I.boot = async function (name, resid, query, headers, config) {
         let h = crypto.createHmac('sha1', appSecret);
         h.update(str);
         let sig = h.digest('hex');
-        let token = (await I.network('auth', 'post', '/token', {
+        let tokenResult = await I.network('auth', 'post', '/token', {
             app: appId,
             salt: parts[0],
             time: parts[1],
             sig: sig
-        }, null, null)).body.token;
+        }, null, null);
+        let token = tokenResult.body.token;
 
 
         // Get the asset ID - which will be a hash of the asset object.
@@ -32,11 +33,13 @@ I.boot = async function (name, resid, query, headers, config) {
         let assetId = (await I.network('_codebase', 'get', '/named/app/assets/template.html', null, null)).body;
         let template = (await I.network('_codebase', 'get', '/assets/' + assetId, null, null)).body;
         let html = template.replace(/{{token}}/g, token);
-        return {
-            status: 200,
-            headers: { 'content-type': 'text/html' },
-            body: html
+        let outHeaders = {
+            'content-type': 'text/html'
+        };
+        if (tokenResult.headers && tokenResult.headers['set-cookie']) {
+            outHeaders['set-cookie'] = tokenResult.headers['set-cookie'];
         }
+        return { status: 200, headers: outHeaders, body: html };
     };
     return { status: 200, body: "Booted" };
 };

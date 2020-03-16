@@ -22,15 +22,20 @@
             if (!parts) { return { status: 404, body: 'Not found' }; }
             let service = parts[1];
             let serviceResId = parts[2];
-            let auth = 'Bearer: ' + document.body.getAttribute('token');
             if (!headers) { headers = {}; }
-            headers.authorization = auth;
+            headers['content-type'] = 'application/json';
+
+            // TODO: This isn't strictly necessary. Remove at appropriate time.
+            // The token should be passed already via "Cookie:" header. Though
+            // the "Authorization:" header is the ideal place for the token,
+            // web browser based access token usually goes via cookies.
+            if (document.body.hasAttribute('token')) {
+                headers.authorization = 'Bearer: ' + document.body.getAttribute('token');
+            }
+
             let response = await fetch(providerBaseURL + '/_proxy', {
                 method: 'POST',
-                headers: {
-                    'content-type': 'application/json',
-                    'authorization': auth
-                },
+                headers: headers,
                 body: JSON.stringify({
                     name: service,
                     verb: verb,
@@ -42,7 +47,7 @@
             });
 
             let result = await response.json();
-            if (result.status >= 200 && result.status < 300 && result.token) {
+            if (result.status >= 200 && result.status < 300 && result.token && document.body.hasAttribute('token')) {
                 document.body.setAttribute('token', result.token);
             }
             return result;

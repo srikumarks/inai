@@ -9,7 +9,11 @@
     "credentials": {
         "thumbsignin": {
             "accessKeyId": "$INAI_THUMBSIGIN_ACCESSKEYID",
-            "secretKey": "$INAI_THUMBSIGNIN_SECRETKEY"
+            "secretKey": "$INAI_THUMBSIGNIN_SECRETKEY",
+            "headers": {
+                "date_lc": "x-ts-date",
+                "date_uc": "X-Ts-Date"
+            }
         }
     }
   }

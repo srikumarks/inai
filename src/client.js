@@ -18,7 +18,12 @@ I.dom = function (resid, body) {
 function stdHeaders() {
     const headers = new Headers();
     headers.append('Content-Type', 'application/json');
-    headers.append('Authorization', 'Bearer: ' + document.body.getAttribute("token"));
+    // Sending the token via the "Authorization" header is usually optional,
+    // because the page is likely to have already set a cookie that provides
+    // the token.
+    if (document.body.hasAttribute('token')) {
+        headers.append('Authorization', 'Bearer: ' + document.body.getAttribute("token"));
+    }
     return headers;
 }
 
@@ -154,7 +159,8 @@ async function setupService(inai_name, inai_id, codeId, codeCache) {
             // Load the code.
             let response = await fetch(providerURLBase + '/_codebase/' + codeId, {
                 method: 'GET',
-                headers: stdHeaders()
+                headers: stdHeaders(),
+                credentials: 'same-origin'
             });
             if (response.status !== 200) {
                 console.error("Couldn't load code [" + codeId + "]")
