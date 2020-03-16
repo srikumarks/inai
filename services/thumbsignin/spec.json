@@ -1,0 +1,41 @@
+{
+  "name": "thumbsignin",
+  "disabled": true,
+  "public": true,
+  "env": [
+    "browser"
+  ],
+  "config": {
+    "REGISTER_CONFIG": {
+        "actionUrl": "/tsAuth/register",
+        "statusUrl": "/tsAuth/txnStatus/"
+    },
+    "LOGIN_CONFIG": {
+        "COMPLETED_SUCCESSFUL": "Finished successfully",
+        "ALREADY_REGISTERED": "You have already enabled passwordless authentication for this account using this device.",
+        "NOT_REGISTERED": "Can't login because the passwordless account doesn't exist.",
+        "NO_SUITABLE_AUTHENTICATOR": "You have not added fingerprint in your device.",
+        "DECLINED": "Cancelled",
+        "CANCELLED": "Cancelled",
+        "TIMEOUT": "Please try again.",
+        "TECHNICAL_REASON_ERROR": "Please try again.",
+        "TECHNICAL_REASON": "Please try again.",
+        "COMPLETED_FAILURE": "",
+        "DEEP_LINK": "Open in Thumbsignin app",
+        "USER_BLOCKED": "User is blocked from Login",
+        "DEVICE_BLOCKED":"Device is blocked from Login",
+        "actionUrl": "/tsAuth/authenticate",
+        "statusUrl": "/tsAuth/txnStatus/",
+        "desktop": {
+            "INTRO_MSG": "Scan the QR code above using the ThumbSignIn app on your phone to login to your account.",
+            "INITIATED": "QR Code Scanned",
+            "REFRESH_MSG": "QR Code expired.Click to regenerate."
+        },
+        "mobile": {
+            "INTRO_MSG": "",
+            "INITIATED": "Transaction initiated",
+            "REFRESH_MSG": "Click on refresh icon and try again."
+        }
+    }
+  }
+}

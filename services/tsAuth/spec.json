@@ -1,0 +1,14 @@
+{
+  "name": "tsAuth",
+  "disabled": true,
+  "public": true,
+  "env": [
+    "server"
+  ],
+  "config": {
+    "accessKeyId": "$INAI_THUMBSIGNIN_ACCESSKEYID",
+    "secretKey": "$INAI_THUMBSIGNIN_SECRETKEY",
+    "tsAPI": "https://api.thumbsignin.com",
+    "redirectURL": "/"
+  }
+}

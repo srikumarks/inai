@@ -33,6 +33,8 @@
     "bulma",
     "bus",
     "vega",
-    "ingress"
+    "ingress",
+    "thumbsignin",
+    "tsAuth"
   ]
 }
