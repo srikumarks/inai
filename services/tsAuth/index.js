@@ -19,8 +19,9 @@ I.boot = async function (name, resid, query, headers, config) {
     };
 
     const tsAPI = config.tsAPI;
-
     const redirectURL = config.redirectURL;
+    const tsAppId = config.tsAppId;
+    const tsAppSecret = config.tsAppSecret;
 
     debugger;
 
@@ -47,7 +48,7 @@ I.boot = async function (name, resid, query, headers, config) {
             let request = {
                 method: 'get',
                 headers: {},
-                url: tsAPI + '/ts/secure' + resid + (userId ? '?userId=' + userId : '')
+                url: tsAPI + resid + (userId ? '?userId=' + userId : '')
             };
 
             let response = await I.network('hmac', 'post', '/sign', null, null, {
@@ -89,6 +90,7 @@ I.boot = async function (name, resid, query, headers, config) {
             request = response.body.signedRequest;
 
             let json = JSON.parse(await getJson(request));
+            console.log("TSI logged in " + JSON.stringify(json, null, 4));
 
             if (json.status === 'COMPLETED_SUCCESSFUL') {
                 // We conform to the JWT token spec
@@ -110,18 +112,19 @@ I.boot = async function (name, resid, query, headers, config) {
                 // Make a token for this user login attempt since it succeeded.                
                 let time = (await I.network('auth', 'get', '/time', null, null)).body;
                 let parts = time.split(".");
-                let str = appId + '.' + time;
-                let h = crypto.createHmac('sha1', appSecret);
+                let str = tsAppId + '.' + time;
+                let h = crypto.createHmac('sha1', tsAppSecret);
                 h.update(str);
                 let sig = h.digest('hex');
-                let token = (await I.network('auth', 'post', '/token', {
-                    app: appId,
+                let tokenReply = (await I.network('auth', 'post', '/token', {
+                    app: tsAppId,
                     salt: parts[0],
                     time: parts[1],
                     sig: sig
-                }, null, null)).body.token;
+                }, headers, null));
+                let token = tokenReply.body.token;
 
-                let response = await I.network('auth', 'post', '/users', null, headers, { user: userProfile, token: token });
+                let response = await I.network('auth', 'post', '/users', null, tokenReply.headers, { user: userProfile, token: token });
                 if (response.status !== 200) {
                     return { status: 500, body: 'Failed to auth' };
                 }
@@ -129,12 +132,14 @@ I.boot = async function (name, resid, query, headers, config) {
                 json.token = response.body.token;
                 json.redirectUrl = redirectURL; 
 
-                let headers = {
+                let outHeaders = {
                     'content-type': 'application/json',
                     'set-cookie': response.headers['set-cookie']
                 };
 
-                return { status: 200, headers: headers, body: json };
+                return { status: 200, headers: outHeaders, body: json };
+            } else {
+                return { status: 200, body: json };
             }
 
             return { status: 500, body: json.status };

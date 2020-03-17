@@ -234,6 +234,21 @@ I.boot = async function (name, resid, query, headers, config) {
     };
 
 
+    // Sometimes, services use set-cookie in some headers that needs to be passed
+    // down to other services via the cookie header. For services that need to
+    // accept both, such as auth, we need to transfer cookies from the set-cookie
+    // array to the cookie field.
+    function useCookies(headers) {
+        if (headers && headers['set-cookie'] && typeof(headers['set-cookie']) === 'object') {
+            let kvpairs = [];
+            for (let cookie of headers['set-cookie']) {
+                kvpairs.push(cookie.name + '=' + cookie.value);
+            }
+            let kvpairsLine = kvpairs.join('; ');
+            headers.cookie = ((headers.cookie && headers.cookie.trim().length > 0) ? headers.cookie + '; ' : '') + kvpairsLine;
+        }
+    }
+
     function extractAuthTokenFromHeaders(headers) {
         // The "Authorization" header takes precedence
         // over the "inai-auth-token" cookie that may be
@@ -241,6 +256,7 @@ I.boot = async function (name, resid, query, headers, config) {
         if (headers && headers.authorization) {
             return headers.authorization;
         }
+        useCookies(headers);
         let cookiesStr = headers && headers.cookie;
         if (cookiesStr) {
             // The token cookie regular expression is a bit strict in checking
