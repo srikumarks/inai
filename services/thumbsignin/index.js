@@ -49,11 +49,20 @@ I.boot = async function bootFn(name, resid, query, headers, config) {
     // As per ref: https://app.thumbsignin.com/app/web
     debugger;
 
-    let element = document.querySelector('[inai-id="' + I._self + '"]');
+    if (!config.LOGIN_CONFIG || !config.REGISTER_CONFIG) {
+        return { status: 400, body: 'Need LOGIN_CONFIG and REGISTER_CONFIG' };
+    }
+
+    const element = document.querySelector('[inai-id="' + I._self + '"]');
     if (!element) {
         console.error("Unattached thumbsignin!");
         return { status: 500, body: 'Invalid thumbsignin boot' };
     }
+
+    const elementId = element.getAttribute('id');
+
+    const AtomicQueue = I.require('./atomic_queue');
+    const queue = new AtomicQueue();
 
     // Create the platform script element and insert it.
     I.dom('thumbsignin/platformScript', {
@@ -66,28 +75,8 @@ I.boot = async function bootFn(name, resid, query, headers, config) {
 
     await ensure(() => window.thumbSignIn);
 
-    if (!config.LOGIN_CONFIG) {
-        return { status: 500, body: 'No LOGIN_CONFIG' };
-    }
-
     window.thumbSignIn.addConfig('REGISTER_CONFIG', config.REGISTER_CONFIG);
     window.thumbSignIn.addConfig('LOGIN_CONFIG', config.LOGIN_CONFIG);
-
-    debugger;
-    
-    await Promise.all([
-        window.thumbSignIn.init({
-            id: 'tsRegister',
-            config: 'REGISTER_CONFIG',
-            container: element.getAttribute('id')
-        }),
-
-        window.thumbSignIn.init({
-            id: 'tsLogin',
-            config: 'LOGIN_CONFIG',
-            container: element.getAttribute('id')
-        })
-    ]);
 
     const docResponse = {
         status: 200,
@@ -101,31 +90,76 @@ I.boot = async function bootFn(name, resid, query, headers, config) {
         return { status: 404 };
     };
 
+    let resources = {
+        registration: {
+            id: 'tsRegister',
+            config: 'REGISTER_CONFIG',
+            widget: null
+        },
+        login: {
+            id: 'tsLogin',
+            config: 'LOGIN_CONFIG',
+            widget: null
+        }
+    };
+
+    let residRE = new RegExp('^[/]?(' + Object.keys(resources).join('|') + ')$')
+
+    I.delete = async function (name, resid, query, headers) {
+        let pat = resid.match(residRE);
+        if (!pat) {
+            return { status: 200, body: 'All is well' };
+        }
+
+        let resName = pat[1];
+        let res = resources[resName];
+        await queue.atomic(async () => {
+            debugger;
+            if (res.widget) {
+                let widget = res.widget;
+                res.widget = null;
+                await widget.close();
+            }
+        });
+
+        return { status: 200, body: 'Closed' };
+    };
+
     I.post = async function (name, resid, query, headers, body) {
-        debugger;
-        if (resid === '/register') {
-            debugger;
-            window.tsRegister.open();
-            return { status: 200, body: 'TSI register window is now open' };
+        let pat = resid.match(residRE);
+        if (!pat) {
+            return { status: 404, body: 'Not found' };
         }
 
-        if (resid === '/login') {
-            debugger;
-            window.tsLogin.open();
-            return { status: 200, body: 'TSI login window is now open' };
-        }
+        let resName = pat[1];
+        let res = resources[resName];
 
-        return { status: 200, body: 'Ok' };
+        return await queue.atomic(async () => {
+            debugger;
+            if (res.widget) {
+                await res.widget.refresh();
+                return { status: 200, body: { ref: resid, message: 'TSI refreshed QR code' } };
+            }
+
+            res.id = (query && query.id) || res.id;
+
+            await window.thumbSignIn.init({
+                id: res.id,
+                config: res.config,
+                container: elementId
+            });
+
+            res.widget = window[res.id];
+
+            await res.widget.open();
+
+            return { status: 200, body: { ref: resid, message: 'TSI opened widget' } };
+        });
     };
 
     I.shutdown = async function (name, resid, query, headers) {
-        if (window.tsRegister) {
-            window.tsRegister.close();
-        }
-
-        if (window.tsLogin) {
-            window.tsLogin.close();
-        }
+        await I.network(name, 'delete', '/registration', null, headers);
+        await I.network(name, 'delete', '/login', null, headers);
 
         I.boot = bootFn;
         I.get = null;
