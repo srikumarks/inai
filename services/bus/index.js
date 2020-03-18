@@ -15,6 +15,11 @@ To publish a message to a key, post a message to \`/key\`
 and the body will be sent to any service registered for the \`key\`.
 Keys may not begin with '_' as those are reserved for targeting
 the pubsub service itself.
+
+A key can be multi-part like \`/a/b/c\`. If a service subscribes to
+the key \`/a/b/c\`, then they end up receiving messages posted to
+\`/a\`, \`/a/b\` and \`/a/b/c\`. That way, message posters can 
+target larger or smaller groups of receivers organized in a hierarchy.
 `;
 
 
