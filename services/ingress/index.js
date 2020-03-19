@@ -151,7 +151,7 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
             let json = req.body;
             let perms = (req.params.serviceId === json.name); // It can access itself.
             if (!perms) {
-                perms = (req.auth.services && req.auth.services[json.name]); // It has permissions to access the service.
+                perms = (req.auth.services && req.auth.services[json.name]) || null; // It has permissions to access the service.
             }
             if (!perms) {
                 let spec = (await I.network('_codebase', 'get', '/named/' + json.name, null, maybeBranch(req))).body;
@@ -172,6 +172,7 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
                 if (req.auth.branch) {
                     json.headers['inai-branch'] = req.auth.branch;
                 }
+
                 let result = await I.network(json.name, json.verb, json.resid, json.query, json.headers, json.body);
 
                 // This is a proxy call, so the entire response needs to be passed back as the body.
@@ -181,7 +182,7 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
                 }
                 res.json(result);
             } else {
-                res.status(404).send("Not found"); // Don't reveal the _proxy URL as valid unnecessarily.
+                res.status(200).json({status: 404, body: "Not found"}); // Don't reveal the _proxy URL as valid unnecessarily.
             }
         }));
 
@@ -189,7 +190,6 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
         // a service marked "public". So check that and pass on the request.
         function installPublicHandler() {
             router.use(async function (req, res, next) {
-                debugger;
                 let m = req.path.match(/^[/]?([^/]+)(.*)$/); //  /(<serviceid>)(/<resid>)
                 if (!m) { return res.status(404).send("Not found"); }
                 let serviceName = m[1];

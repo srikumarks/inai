@@ -1,7 +1,7 @@
 {
   "name": "hmac",
   "disabled": false,
-  "public": true,
+  "public": false,
   "env": [
     "server"
   ],

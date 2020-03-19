@@ -1,7 +1,7 @@
 {
   "name": "opencpu",
   "disabled": false,
-  "public": true,
+  "public": false,
   "env": [
     "server"
   ],
