@@ -4,11 +4,13 @@
   "description": "An experiment in using REST principles within a server.",
   "main": "src/server.js",
   "dependencies": {
+    "aws-sdk": "^2.641.0",
     "bulma": "^0.8.0",
     "express": "^4.17.1",
     "google-auth-library": "^5.5.1",
     "mariadb": "^2.1.4",
     "mysql2": "^2.1.0",
+    "nodemailer": "^6.4.5",
     "pg": "^7.17.0",
     "pg-hstore": "^2.3.3",
     "redis": "^2.8.0",

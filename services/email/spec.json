@@ -1,0 +1,12 @@
+{
+  "name": "email",
+  "disabled": false,
+  "public": false,
+  "env": [
+    "server"
+  ],
+  "config": {
+    "transport": "ses",
+    "apiVersion": "2010-12-01"
+  }
+}

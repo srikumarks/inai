@@ -36,6 +36,7 @@
     "ingress",
     "hmac",
     "thumbsignin",
-    "tsAuth"
+    "tsAuth",
+    "email"
   ]
 }
