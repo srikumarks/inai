@@ -22,7 +22,7 @@ function stdHeaders() {
     // because the page is likely to have already set a cookie that provides
     // the token.
     if (document.body.hasAttribute('token')) {
-        headers.append('Authorization', 'Bearer: ' + document.body.getAttribute("token"));
+        headers.append('Authorization', 'Bearer ' + document.body.getAttribute("token"));
     }
     return headers;
 }

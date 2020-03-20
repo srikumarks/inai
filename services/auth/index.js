@@ -182,7 +182,7 @@ I.boot = async function (name, resid, query, headers, config) {
     function unpackAuthToken(authorization) {
         let auth = authorization;
         if (!auth) { return null; }
-        let pat = auth.match(/^Bearer[:] (.+)$/);
+        let pat = auth.match(/^Bearer (.+)$/);
         if (!pat) { return null; }
         let token = pat[1];
         let parts = token.split('.');
@@ -269,7 +269,7 @@ I.boot = async function (name, resid, query, headers, config) {
             if (pat) {
                 // Normalize the pattern to be the same as the
                 // structure of the "Authorization" header.
-                return 'Bearer: ' + pat[1];
+                return 'Bearer ' + pat[1];
             }
         }
 
@@ -328,7 +328,7 @@ I.boot = async function (name, resid, query, headers, config) {
                     if (!query || !query.app || !query.salt || !query.time || !query.sig) {
                         // User wants to renew a token. You can just POST to /token
                         // with the appropriate expired token in the authorization header
-                        // as a "Bearer:" token and the service will send you a renewed
+                        // as a "Bearer" token and the service will send you a renewed
                         // token. You may ask "But doesn't this mean that all tokens are
                         // valid indefinitely?". The step of token renewal offers a chance
                         // for us to invalidate a token. Instead of storing tokens in a

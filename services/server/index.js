@@ -30,7 +30,7 @@
             // the "Authorization:" header is the ideal place for the token,
             // web browser based access token usually goes via cookies.
             if (document.body.hasAttribute('token')) {
-                headers.authorization = 'Bearer: ' + document.body.getAttribute('token');
+                headers.authorization = 'Bearer ' + document.body.getAttribute('token');
             }
 
             let response = await fetch(providerBaseURL + '/_proxy', {
