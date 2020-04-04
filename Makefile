@@ -46,7 +46,7 @@ $(service_hashes): workdir/%.hash: workdir/%.build
 
 $(services_deployed): workdir/%.deployed: workdir/%.hash services/%/spec.json workdir/pid
 	@echo Deploying $(patsubst workdir/%.hash,%,$<)
-	@./deploy.sh $(keyspace) $(patsubst workdir/%.hash,%,$<) > /dev/null
+	@./scripts/deploy.sh $(keyspace) $(patsubst workdir/%.hash,%,$<) > /dev/null
 	@touch $@
 
 workdir/assets_deployed: workdir/pid services/app/template.html $(services_deployed)
