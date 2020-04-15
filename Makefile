@@ -8,7 +8,7 @@ services_deployed := $(patsubst %,workdir/%.deployed,$(services))
 keyspace := $(shell cat boot.json | jq -r '.boot[0].config.keyspace')
 
 
-all: workdir/.createdir static/inai_web.js $(services_deployed) workdir/assets_deployed 
+all: workdir/.createdir static/inai_web.min.js $(services_deployed) workdir/assets_deployed 
 
 workdir/.createdir:
 	mkdir -p workdir
@@ -25,6 +25,9 @@ test:
 static/inai_web.js: $(shell browserify --list src/client.js)
 	browserify src/client.js > $@
 
+static/inai_web.min.js : static/inai_web.js
+	uglifyjs --source-map --output $@ $<
+	
 include $(service_bdeps)
 
 workdir:
@@ -40,6 +43,7 @@ workdir/pid: services/redis_codebase/redis.conf
 
 $(service_targets): workdir/%.build: workdir/%.bdeps
 	browserify $(patsubst workdir/%.bdeps,services/%/index.js,$<) > $@
+	uglifyjs --source-map --output $@.min $@
 
 $(service_hashes): workdir/%.hash: workdir/%.build
 	shasum $< | awk '{print $$1}' > $@
