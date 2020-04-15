@@ -5,7 +5,7 @@ const _docstr = `
 A tiny facade for the [navigator.geolocation][geo] API.
 
 You can query the current location by making a \`get\`
-request to \'{{ref}}/geolocation\`. The first time the request is made,
+request to \`//{{ref}}/geolocation\`. The first time the request is made,
 the service will initiate access to the geolocation API
 which might prompt the user to give the necessary permission.
 It'll then return the current location passed.
@@ -39,7 +39,7 @@ Errors can be -
 `;
 
 I.boot = async function (name, resid, query, headers, config) {
-    const _doc = { status: 200, headers: { 'content-type': 'text/markdown' }, body: _docstr.replace('{{ref}}', name) };
+    let _doc = null;
 
     const err_codes = { 1: 401, 2: 503, 3: 408 };
     const default_options = {
@@ -69,6 +69,11 @@ I.boot = async function (name, resid, query, headers, config) {
     // returns the documentation in the body text.
     I.get = async function (name, resid, query, headers) {
         if (resid === '/_doc') {
+            if (!_doc) {
+                // Do it only once. Can't do it at boot time because the boot time
+                // id will be temporary.
+                _doc = { status: 200, headers: { 'content-type': 'text/markdown' }, body: _docstr.replace('{{ref}}', name) };
+            };
             return _doc;
         }
 
