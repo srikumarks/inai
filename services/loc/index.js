@@ -1,5 +1,5 @@
 
-const _doc = `
+const _docstr = `
 # Location service 
 
 A tiny facade for the [navigator.geolocation][geo] API.
@@ -39,7 +39,7 @@ Errors can be -
 `;
 
 I.boot = async function (name, resid, query, headers, config) {
-    const _doc = { status: 200, headers: { 'content-type': 'text/markdown' }, body: _doc.replace('{{ref}}', name) };
+    const _doc = { status: 200, headers: { 'content-type': 'text/markdown' }, body: _docstr.replace('{{ref}}', name) };
 
     const err_codes = { 1: 401, 2: 503, 3: 408 };
     const default_options = {
@@ -75,9 +75,9 @@ I.boot = async function (name, resid, query, headers, config) {
         if (/^[/]?geolocation$/.test(resid) && available) {
             return new Promise((resolve, reject) => {
                 navigator.geolocation.getCurrentPosition((pos) => {
-                    return { status: 200, body: pos2obj(pos) };
+                    resolve({ status: 200, body: pos2obj(pos) });
                 }, (err) => {
-                    return { status: err_codes[err.code], body: err.message };
+                    reject({ status: err_codes[err.code], body: err.message });
                 }, query || default_options);
             });
         }
