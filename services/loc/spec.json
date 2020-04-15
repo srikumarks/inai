@@ -1,0 +1,8 @@
+{
+  "name": "loc",
+  "disabled": false,
+  "public": true,
+  "env": [
+    "browser"
+  ]
+}

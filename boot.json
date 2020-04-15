@@ -37,6 +37,7 @@
     "hmac",
     "thumbsignin",
     "tsAuth",
-    "email"
+    "email",
+    "loc"
   ]
 }
