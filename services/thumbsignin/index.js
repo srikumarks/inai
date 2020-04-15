@@ -43,12 +43,8 @@ async function ensure(test, poll_ms) {
     return true;
 }
 
-debugger;
-
 I.boot = async function bootFn(name, resid, query, headers, config) {
     // As per ref: https://app.thumbsignin.com/app/web
-    debugger;
-
     if (!config.LOGIN_CONFIG || !config.REGISTER_CONFIG) {
         return { status: 400, body: 'Need LOGIN_CONFIG and REGISTER_CONFIG' };
     }
