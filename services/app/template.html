@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script defer src="/static/inai_web.js"></script>
     </head>
-    <body inai-boot="bulma">
+    <body inai-boot="bulma gsignin">
         <section class="hero is-medium is-primary is-bold">
             <div class="container">
                 <div class="hero-body">
@@ -23,8 +23,8 @@
                             <button id="sayit" class="level-left button is-primary" inai-target="/g1">Greet me!</button>
                         </div>
                         <div class="level">
-                            <div id="gs" class="level-left" inai="gsignin"></div>
-                            <button id="gs-signout" class="level-left button is-primary" inai-target="/gs/signout">Signout</button>
+                            <div class="g-signin2 level-left"></div>
+                            <button id="gs-signout" class="level-left button is-primary" inai-target="/gsignin/signout">Signout</button>
                             <div id="ts" class="level-left" inai="thumbsignin"></div>
                             <button class="level-left button is-primary" inai-target="/ts/registration">Register with ThumbSignIn</button>
                             <button class="level-left button is-primary" inai-target="/ts/login">Login using ThumbSignIn</button>

@@ -17,11 +17,14 @@ The job of the widget is sort of done once it is "booted".
 I.boot = async function (name, resid, query, headers, config) {
     // As per ref: https://developers.google.com/identity/sign-in/web/sign-in
 
-    let element = document.querySelector('[inai-id="' + I._self + '"]');
-    if (!element) {
-        console.error("Unattached gsignin!");
-        return { status: 500, body: 'Invalid gsignin boot' };
-    }
+    // Insert info about the client id
+    I.dom('gsignin/meta', {
+        op: 'set',
+        tag: 'meta',
+        once: true,
+        attrs: { name: 'google-signin-client_id', content: config.client_id },
+        childOf: 'head'
+    });
 
     // Create the platform script element and insert it.
     I.dom('gsignin/platformScript', {
@@ -32,28 +35,18 @@ I.boot = async function (name, resid, query, headers, config) {
         childOf: 'head'
     });
 
-    // Insert info about the client id
-    I.dom('gsignin/meta', {
-        op: 'set',
-        tag: 'meta',
-        once: true,
-        attrs: { name: 'google-signin-client_id', content: config.client_id },
-        childOf: 'head'
-    });
-
-    // Insert button
+    // Bind to a specified button. The class name is the indicator
+    // that it is the google-signin button.
     // <div class="g-signin2" data-onsuccess="onSignIn"></div>
     let signinFnName = 'inai3_gsignin_onSignin';
     I.dom('gsignin/btn', {
         op: 'set',
-        tag: 'div',
-        once: true,
-        classes: 'g-signin2',
-        attrs: { "data-onsuccess": signinFnName },
-        childOf: I._self
+        sel: '.g-signin2',
+        attrs: { "data-onsuccess": signinFnName }
     });
 
     async function notify(eventName) {
+        let element = document.querySelector('.g-signin2');
         if (element.hasAttribute("inai-target")) {
             let target = element.getAttribute("inai-target")
             let pat = target.match(/^[/]?([^/]+)(.*)$/);
