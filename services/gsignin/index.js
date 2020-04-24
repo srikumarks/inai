@@ -11,6 +11,20 @@ whose value will be used to tell google which application is
 contacting it for authentication.
 
 The job of the widget is sort of done once it is "booted".
+
+To specify a target service to notify upon various events,
+give a meta tag in the following format in the "head" section
+of the document -
+
+\`\`\`
+<meta name="inai-gsignin-target" content="//SERVICE/RES">
+\`\`\`
+
+The following events will then get posted to that end point -
+
+1. query = { event: 'signinChanged' } , body = { state: val }
+2. query = { event: 'signin' }, body = { user: {id,email,name,imageUrl,id_token} }
+3. query = { event: 'signout' }, body = null
 `;
 
 
