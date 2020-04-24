@@ -3,6 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="gsignin-inai-target" content="/gsignin/report">
         <script defer src="/static/inai_web.js"></script>
     </head>
     <body inai-boot="bulma gsignin">
@@ -23,7 +24,7 @@
                             <button id="sayit" class="level-left button is-primary" inai-target="/g1">Greet me!</button>
                         </div>
                         <div class="level">
-                            <div class="g-signin2 level-left"></div>
+                            <div class="g-signin2 level-left" data-longtitle="true"i data-theme="dark"></div>
                             <button id="gs-signout" class="level-left button is-primary" inai-target="/gsignin/signout">Signout</button>
                             <div id="ts" class="level-left" inai="thumbsignin"></div>
                             <button class="level-left button is-primary" inai-target="/ts/registration">Register with ThumbSignIn</button>
