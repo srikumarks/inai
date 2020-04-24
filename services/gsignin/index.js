@@ -98,11 +98,11 @@ I.boot = async function (name, resid, query, headers, config) {
         return I.network(target.service, 'post', target.res, { event: 'signinChanged' }, null, { state: val });
     };
 
-    // The "target" is given as a meta tag with name="gsignin-inai-target"
+    // The "target" is given as a meta tag with name="inai-gsignin-target"
     // and the URL as the target. The URL is expected to be in the format
     // "//service/res" ... where the leading slashes may be omitted.
     let getTarget = function () {
-        let meta = document.head.querySelector('meta[name="gsignin-inai-target"]');
+        let meta = document.head.querySelector('meta[name="inai-gsignin-target"]');
         if (!meta) { return; }
 
         let target = meta.getAttribute('content');
