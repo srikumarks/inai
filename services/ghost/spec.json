@@ -1,0 +1,15 @@
+{
+  "name": "ghost",
+  "disabled": false,
+  "public": false,
+  "env": [
+    "server"
+  ],
+  "config": {
+    "url": "http://localhost:2368",
+    "version": "v3",
+    "content_api_key": "$INAI_GHOST_CONTENT_API_KEY",
+    "admin_api_key" : "$INAI_GHOST_ADMIN_API_KEY",
+    "images_base_url": "http://localhost:2368/content"
+  }
+}

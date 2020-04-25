@@ -23,6 +23,7 @@
     "auth",
     "gauth",
     "opencpu",
+    "ghost",
     "dom",
     "server",
     "doc",
