@@ -210,7 +210,8 @@ I.boot = function (name, resid, query, headers, config) {
 
         let mountQueue = [];
         for (let [k,q] of curr) {
-            let h = ophandlers[q.op];
+            // If the 'op' key is left out, it defaults to 'set'.
+            let h = q.op ? ophandlers[q.op] : ophandlers.set;
             if (h) { h(k, q, mountQueue); }
         }
 
