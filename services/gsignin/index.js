@@ -25,7 +25,23 @@ The following events will then get posted to that end point -
 1. query = { event: 'signinChanged' } , body = { state: val }
 2. query = { event: 'signin' }, body = { user: {id,email,name,imageUrl,id_token} }
 3. query = { event: 'signout' }, body = null
+
+Furthermore, you can query the status user details from the gsignin
+service on the client side when you need. 
+
+The following 'get' requests are supported -
+
+1. \`/status\` => Yields a 503 error if the service is unavailable, or status
+   200 and a body with either 'signedin' or 'signedout'.
+
+2. \`/user\` => If not signed in, this gives a 404. Otherwise it produces 
+   \`{name, imageUrl, email}\` properties as the body.
+
+3. \`/user/(name|imageUrl|email)\` => Use to get the specific field only in the
+   body.  Produces a 404 if the user info is not available.
+
 `;
+
 
 
 I.boot = async function (name, resid, query, headers, config) {
@@ -42,7 +58,6 @@ I.boot = async function (name, resid, query, headers, config) {
 
     // Create the platform script element and insert it.
     I.dom('gsignin/platformScript', {
-        op: 'set',
         tag: 'script',
         once: true,
         attrs: { src: 'https://apis.google.com/js/platform.js', async: true, defer: true },
@@ -54,7 +69,6 @@ I.boot = async function (name, resid, query, headers, config) {
     // <div class="g-signin2" data-onsuccess="onSignIn"></div>
     let signinFnName = 'inai3_gsignin_onSignin';
     I.dom('gsignin/btn', {
-        op: 'set',
         sel: '.g-signin2',
         attrs: { "data-onsuccess": signinFnName }
     });
@@ -193,7 +207,7 @@ I.boot = async function (name, resid, query, headers, config) {
     
     I.post = async function (name, resid, query, headers, body) {
         if (resid === '/signout') {
-            let auth2 = gapi.auth2.getAuthInstance();
+            let auth2 = window.gapi.auth2.getAuthInstance();
             
             auth2.signOut().then(function () {
                 console.log('User signed out.');
@@ -208,6 +222,42 @@ I.boot = async function (name, resid, query, headers, config) {
         }
 
         return { status: 200 };
+    };
+
+    I.get = function (name, resid, query, headers) {
+        if (resid === '/status') {
+            if (!window.gapi || !window.gapi.auth2) { return { status: 503, body: 'Service unavailable' }; }
+            let auth2 = window.gapi.auth2.getAuthInstance();
+            if (!auth2) { return { status: 503, body: 'Service unavailable' }; }
+            if (auth2.isSignedIn.get()) {
+                return { status: 200, body: 'signedin' };
+            }
+            return { status: 200, body: 'signedout' };
+        }
+
+        if (!googleUser) { return { status: 404, body: 'No user info' }; }
+        let profile = googleUser.getBasicProfile();
+        switch (resid) {
+            case '/user':
+            case '/user/':
+                return { 
+                    status: 200,
+                    body: {
+                        name: profile.getName(),
+                        imageUrl: profile.getImageUrl(),
+                        email: profile.getEmail()
+                    }
+                };
+            case '/user/name':
+                return { status: 200, body: profile.getName() };
+            case '/user/imageurl':
+            case '/user/imageUrl':
+                return { status: 200, body: profile.getImageUrl() };
+            case '/user/email':
+                return { status: 200, body: profile.getEmail() };
+            default:
+                return { status: 404, body: 'Unknown resource' };
+        }
     };
 
     // Can boot only once.
