@@ -247,6 +247,82 @@ module.exports = function (document, I) {
         return setHandlers;
     }
 
+    // Makes a tag whose innerHTML is the body fetched from the
+    // given service URL of the form "//service/resid". If tag
+    // argument is left out, it is assumed to be a span.
+    // If the result body is a spec object suitable for compile,
+    // it will be called. Otherwise, it will be treated as innerHTML
+    // and appended.
+    function get(url) {
+        tag = tag || 'span';
+        let pat = url.match(kUrlPat);
+        if (!pat) { return noop; }
+
+        let service = pat[1];
+        let resid = pat[2];
+        
+        let val = Promise.resolve(I.network(service, 'get', resid, null, null));
+        let fn = val.then(result => {
+            if (result.status === 200) {
+                return compile(result.body);
+            }
+            return noop;
+        });
+
+        return function (el) {
+            // There is some non-determinism here. So currently
+            // get is safest to use as the sole content provider
+            // of a tag.
+            fn.then(f => {
+                if (typeof(f) === 'function') {
+                    f(el);
+                } else {
+                    el.innerHTML += f;
+                }
+            });
+            return el;
+        };
+    }
+
+    const endPoints = new Map();
+    
+    // Exposes the element operation as an end point to
+    // which you can subsequently post content.
+    function serve(resid) {
+        return function (el) {
+            endPoints.set(resid, function (method, resid, query, headers, body) {
+                if (method === 'delete') {
+                    endPoints.delete(resid);
+                    return { status: 200 };
+                }
+
+                if (method === 'get') {
+                    return { status: 200, body: el };
+                }
+                
+                let c = compile(body);
+                if (typeof(c) === 'function') {
+                    c(el);
+                } else {
+                    if (method === 'post') {
+                        el.innerHTML += body;
+                    } else if (method === 'put') {
+                        el.innerHTML = body;
+                    }
+                }
+                return { status: 200 };
+            });
+            return el;
+        };
+    }
+
+    function handleServeRequest(method, resid, query, headers, body) {
+        if (endPoints.has(resid)) {
+            return endPoints.get(resid)(method, resid, query, headers, body);
+        }
+        return { status: 404 };
+    }
+    
     const kInstrs = {
         attrs: attrs,
         props: props,
@@ -254,7 +330,9 @@ module.exports = function (document, I) {
         text: text,
         classes: classes,
         events: hooks,
-        children: children
+        children: children,
+        get: get,
+        serve: serve
     };
 
     ['div', 'span', 'p', 'img', 'section', 'header', 'footer', 'b', 'em', 'strong',
@@ -265,6 +343,7 @@ module.exports = function (document, I) {
      'thead', 'tr'].forEach(
          function (tag) {
              kInstrs[tag] = function (...argv) {
+                debugger;
                 argv.unshift(tag);
                 return function (el) {
                     el.appendChild(e.apply(null, argv));
@@ -279,12 +358,35 @@ module.exports = function (document, I) {
 
     function noop(el) { return el; }
 
+    /**
+     * The 'spec' is a JSON-serializable object from which a DOM
+     * representation can be constructed. Here is a sample -
+     *
+     * {div: [{classes: 'container'}, {attrs: ['id', 'd123']},
+     *        {ul: [{styles: ['font-family', 'sans-serif']}, 
+     *              {li: "Item one"},
+     *              {li: "Item two"}
+     *              ]}]}
+     *
+     * That maps to -
+     *
+     * <div class="container" id="d123">
+     *     <ul style="font-family: sans-serif;">
+     *        <li>Item one</li>
+     *        <li>Item two</li>
+     *     </ul>
+     * </div>
+     */
     function compile(spec) {
         if (typeof(spec) === 'object') {
             let op = operator(spec);
             let fn = kInstrs[op];
             if (!fn) { return noop; }
-            return function (el) { return fn.apply(null, spec[op].map(compile))(el); };
+            return function (el) { 
+                let val = spec[op];
+                if (typeof(val) !== 'object') { val = [val]; }
+                return fn.apply(null, spec[op].map(compile))(el);
+            };
         }
         return spec;
     }
@@ -303,6 +405,7 @@ module.exports = function (document, I) {
         asHandler: asHandler,
         props: props,
         tree: tree,
-        compile: compile
+        compile: compile,
+        handleServeRequest: handleServeRequest
     };
 };

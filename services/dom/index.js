@@ -219,6 +219,7 @@ I.boot = function (name, resid, query, headers, config) {
 
     function render(t) {
         scheduledRender = null;
+
         let curr = updateQueue;
         updateQueue = [];
 
@@ -227,6 +228,7 @@ I.boot = function (name, resid, query, headers, config) {
             // If the 'op' key is left out, it defaults to 'set'.
             let h = q.op ? ophandlers[q.op] : ophandlers.set;
             if (h) { h(k, q, mountQueue); }
+            else { D.handleServeRequest('post', k, null, null, q); }
         }
 
         for (let i of mountQueue) {
@@ -253,6 +255,14 @@ I.boot = function (name, resid, query, headers, config) {
         updateQueue.push([resid, body]);
         schedule();
         return ok;
+    };
+
+    I.put = function (name, resid, query, headers, body) {
+        return D.handleServeRequest('put', resid, query, headers, body);
+    };
+
+    I.get = function (name, resid, query, headers) {
+        return D.handleServeRequest('get', resid, query, headers, body);
     };
 
     I.boot = null;
