@@ -247,6 +247,13 @@ module.exports = function (document, I) {
         return setHandlers;
     }
 
+    function clear() {
+        return function (el) {
+            el.innerHTML = '';
+            return el;
+        };
+    }
+
     // Makes a tag whose innerHTML is the body fetched from the
     // given service URL of the form "//service/resid". If tag
     // argument is left out, it is assumed to be a span.
@@ -332,7 +339,8 @@ module.exports = function (document, I) {
         events: hooks,
         children: children,
         get: get,
-        serve: serve
+        serve: serve,
+        clear: clear
     };
 
     ['div', 'span', 'p', 'img', 'section', 'header', 'footer', 'b', 'em', 'strong',
@@ -343,7 +351,6 @@ module.exports = function (document, I) {
      'thead', 'tr'].forEach(
          function (tag) {
              kInstrs[tag] = function (...argv) {
-                debugger;
                 argv.unshift(tag);
                 return function (el) {
                     el.appendChild(e.apply(null, argv));
