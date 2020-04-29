@@ -1,4 +1,6 @@
 
+let Dom = require('./dom.js');
+
 // I'd like this to be the only service to talk to the DOM.
 // Not sure of the performance implications, but would like
 // to see.
@@ -20,6 +22,7 @@ I.boot = function (name, resid, query, headers, config) {
     let elcache = new Map();
     let docHead = (f => f(document.head, 0, 1));
     let docBody = (f => f(document.body, 0, 1));
+    let D = Dom(document, I);
 
     function elem(k) {
         let el = elcache.get(k);
@@ -103,10 +106,21 @@ I.boot = function (name, resid, query, headers, config) {
             });
         }
         if (q.body) {
-            el(e => {
-                if (q.append) { e.innerHTML += q.body; }
-                else { e.innerHTML = q.body; }
-            });
+            if (typeof(q.body) === 'object') {
+                if (!q.append) {
+                    el
+                }
+                let f = D.compile(q.body);
+                el(e => {
+                    if (!q.append) { e.innerHTML = ''; }
+                    f(e);
+                });
+            } else {
+                el(e => {
+                    if (q.append) { e.innerHTML += q.body; }
+                    else { e.innerHTML = q.body; }
+                });
+            }
         }
         if (q.style) {
             el(e => {
