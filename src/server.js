@@ -262,7 +262,7 @@ function random(n) {
 }
 
 function isLocalhost(ip) {
-    return ip === '127.0.0.1' || ip === 'localhost' || ip === '::1';
+    return ip === '127.0.0.1' || ip === 'localhost' || ip === '::1' || ip === '::ffff:127.0.0.1';
 }
 
 function isForProfile(meta, profile) {

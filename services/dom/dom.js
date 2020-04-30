@@ -65,7 +65,16 @@ module.exports = function (document, I) {
 
     function text(val) {
         return function (el) {
-            el.textContent = val;
+            let node = document.createTextNode(val);
+            el.appendChild(node);
+            return el;
+        };
+    }
+
+    // html replaces contents with the given html text value.
+    function html(val) {
+        return function (el) {
+            el.innerHTML = val;
             return el;
         };
     }
@@ -335,7 +344,9 @@ module.exports = function (document, I) {
         props: props,
         styles: styles,
         text: text,
+        html: html,
         classes: classes,
+        cls: classes,
         events: hooks,
         children: children,
         get: get,
@@ -344,7 +355,8 @@ module.exports = function (document, I) {
     };
 
     ['div', 'span', 'p', 'img', 'section', 'header', 'footer', 'b', 'em', 'strong',
-     'form', 'input', 'textarea', 'button', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'nav',
+     'form', 'label', 'input', 'textarea', 'button', 'select', 'option', 
+     'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'nav',
      'blockquote', 'ul', 'ol', 'li', 'dl', 'dt', 'dd', 'pre', 'code', 'em',
      'small', 'u', 'sup', 'audio', 'video', 'track', 'figure', 'figcaption',
      'table', 'caption', 'col', 'colgroup', 'tbody', 'td', 'tfoot', 'th',
@@ -389,11 +401,9 @@ module.exports = function (document, I) {
             let op = operator(spec);
             let fn = kInstrs[op];
             if (!fn) { return noop; }
-            return function (el) { 
-                let val = spec[op];
-                if (typeof(val) !== 'object') { val = [val]; }
-                return fn.apply(null, spec[op].map(compile))(el);
-            };
+            let val = spec[op];
+            if (!(val instanceof Array)) { val = [val]; }
+            return fn.apply(null, val.map(compile));
         }
         return spec;
     }

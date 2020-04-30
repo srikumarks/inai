@@ -107,10 +107,11 @@ I.boot = function (name, resid, query, headers, config) {
         }
         if (q.body) {
             if (typeof(q.body) === 'object') {
-                if (!q.append) {
-                    el
+                let body = q.body;
+                if (q.body instanceof Array) {
+                    body = {children: q.body};
                 }
-                let f = D.compile(q.body);
+                let f = D.compile(body);
                 el(e => {
                     if (!q.append) { e.innerHTML = ''; }
                     f(e);

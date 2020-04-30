@@ -28,7 +28,13 @@ function stdHeaders() {
 }
 
 const providerURLBase =  (function () {
+    // To identify the url from which the service gets identified, we
+    // substract the resid being accessed from the end of the URL.
+    let resid = document.body.getAttribute('inai-resid');
+    if (!resid) { resid = ''; }
     let base = document.location.origin + document.location.pathname;
+    console.assert(base.lastIndexOf(resid) + resid.length == base.length);
+    base = base.substring(0, base.length - resid.length);
     let parts = base.match(/^(.+)[/][^/]+$/);
     if (parts) {
         return parts[1];
@@ -216,7 +222,14 @@ async function setupService(inai_name, inai_id, codeId, codeCache) {
 }
 
 function setupControl(control) {
-    if (!(control instanceof Element) || !control.hasAttribute('inai-target')) {
+    if (!(control instanceof Element)) { return; }
+    if (!control.hasAttribute('inai-target')) {
+        let candidates = control.querySelectorAll('[inai-target]');
+        if (candidates && candidates.length > 0) {
+            for (let i = 0; i < candidates.length; ++i) {
+                setupControl(candidates[i]);
+            }
+        }
         return;
     }
     let events = null;

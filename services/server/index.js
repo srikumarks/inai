@@ -11,6 +11,9 @@
     if (verb === 'boot') {
         let location = document.location;
         let providerBaseURL = location.origin + location.pathname; // Includes the service that exposes the client.
+        let resid = document.body.getAttribute('inai-resid');
+        if (!resid) { resid = ''; }
+        providerBaseURL = providerBaseURL.substring(0, providerBaseURL.length - resid.length);
 
         // Strip off trailing '/'
         if (/[/]$/.test(providerBaseURL)) {
