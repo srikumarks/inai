@@ -91,15 +91,17 @@ I.boot = async function (name, resid, query, headers, config) {
         if (groups.status === 200) {
             let ds = new Set();
             let now = Date.now();
-            for (let g of groups.body) {
-                let gs = await getKnownGroup(g, now, ds);
-                if (g2.status === 200) {
-                    for (let g2 of gs.body) {
-                        user.groups.add(g2);
+            if (!groups.body) {
+                for (let g of groups.body) {
+                    let gs = await getKnownGroup(g, now, ds);
+                    if (g2.status === 200) {
+                        for (let g2 of gs.body) {
+                            user.groups.add(g2);
+                        }
+                        console.assert(user.groups.has(g), "A super group should also be in the groups list.");
+                    } else {
+                        user.groups.add(g);
                     }
-                    console.assert(user.groups.has(g), "A super group should also be in the groups list.");
-                } else {
-                    user.groups.add(g);
                 }
             }
         }
