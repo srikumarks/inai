@@ -41,7 +41,9 @@ function hmac(secret, data) {
 // and when booting is initiated we populate the other
 // handlers and disable booting again.
 I.boot = async function (name, resid, query, headers, config) {
-
+    // Set the backing store for user info.
+    const userdb = config.userStore || 'kv';
+    
     // Hardcoded for now.
     // TODO: Use the codebase store for app permissions too.
     let knownApps = config.knownApps;
@@ -80,13 +82,13 @@ I.boot = async function (name, resid, query, headers, config) {
             return { status: 200, body: rec.user };
         }
 
-        let result = await I.network('kv', 'get', '/auth/users/' + id, null, null);
+        let result = await I.network(userdb, 'get', '/auth/users/' + id, null, null);
         if (result.status !== 200) {
             return { status: 404 };
         }
 
         let user = result.body;
-        let groups = await I.network('kv', 'get', '/auth/users/' + id + '/groups', null, null);
+        let groups = await I.network(userdb, 'get', '/auth/users/' + id + '/groups', null, null);
         user.groups = new Set();
         if (groups.status === 200) {
             let ds = new Set();
@@ -115,7 +117,7 @@ I.boot = async function (name, resid, query, headers, config) {
             return { status: 200, body: g.groups };
         }
 
-        let result = await I.network('kv', 'get', '/auth/groups/' + group, null, null);
+        let result = await I.network(userdb, 'get', '/auth/groups/' + group, null, null);
         if (result.status !== 200) {
             return { status: 404 };
         }
@@ -437,7 +439,7 @@ I.boot = async function (name, resid, query, headers, config) {
                     userRec.userToken = userToken;
                     userRec.branches = userRec.branches || {};
                     knownUsers[userid] = { ts: Date.now(), user: userRec };
-                    await I.network('kv', 'put', '/auth/users/' + userid, null, null, userRec);
+                    await I.network(userdb, 'put', '/auth/users/' + userid, null, null, userRec);
 
                     return {
                         status: 200,
@@ -486,13 +488,13 @@ I.boot = async function (name, resid, query, headers, config) {
             // WARNING: The group insertion isn't currently a transaction!
             let pat = resid.match(/^[/]?groups[/]([-A-Za-z0-9_:]+)[/]?$/);
             if (pat) {
-                let gs = await I.network('kv', 'get', '/auth/groups/' + pat[1], null, null);
+                let gs = await I.network(userdb, 'get', '/auth/groups/' + pat[1], null, null);
                 if (gs.status === 200) {
                     let s = new Set(gs.body);
                     s.add(body);
-                    await I.network('kv', 'put', '/auth/groups/' + pat[1], null, null, [...s]);
+                    await I.network(userdb, 'put', '/auth/groups/' + pat[1], null, null, [...s]);
                 } else {
-                    await I.network('kv', 'put', '/auth/groups/' + pat[1], null, null [body]);
+                    await I.network(userdb, 'put', '/auth/groups/' + pat[1], null, null, [body]);
                 }
                 delete knownGroups[pat[1]];
                 return { status: 200 };

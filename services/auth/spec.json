@@ -32,6 +32,7 @@
         }
       }
     },
-    "systemId": "$INAI_AUTH_SYSTEM_ID"
+    "systemId": "$INAI_AUTH_SYSTEM_ID",
+    "userStore": "kv"
   }
 }
