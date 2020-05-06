@@ -304,18 +304,24 @@ module.exports = function (document, I) {
     
     // Exposes the element operation as an end point to
     // which you can subsequently post content.
+    //
+    // The promise jugglery here is so that the end point
+    // becomes available as soon as you call 'serve'.
     function serve(resid) {
-        return function (el) {
-            endPoints.set(resid, function (method, resid, query, headers, body) {
-                if (method === 'delete') {
-                    endPoints.delete(resid);
-                    return { status: 200 };
-                }
+        let resolveElement = null;
+        let theElement = new Promise((resolve, reject) => { resolveElement = resolve; });
+        console.assert(resolveElement);
+        endPoints.set(resid, function (method, resid, query, headers, body) {
+            if (method === 'delete') {
+                endPoints.delete(resid);
+                return { status: 200 };
+            }
 
-                if (method === 'get') {
-                    return { status: 200, body: el };
-                }
-                
+            if (method === 'get') {
+                return { status: 200, body: theElement };
+            }
+            
+            return theElement.then(el => {
                 let c = compile(body);
                 if (typeof(c) === 'function') {
                     c(el);
@@ -328,6 +334,10 @@ module.exports = function (document, I) {
                 }
                 return { status: 200 };
             });
+        });
+        return function (el) {
+            resolveElement && resolveElement(el);
+            resolveElement = null;
             return el;
         };
     }
@@ -354,7 +364,7 @@ module.exports = function (document, I) {
         clear: clear
     };
 
-    ['div', 'span', 'p', 'img', 'section', 'header', 'footer', 'b', 'em', 'strong',
+    ['div', 'span', 'a', 'p', 'img', 'section', 'header', 'footer', 'b', 'em', 'strong',
      'form', 'label', 'input', 'textarea', 'button', 'select', 'option', 
      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'nav',
      'blockquote', 'ul', 'ol', 'li', 'dl', 'dt', 'dd', 'pre', 'code', 'em',

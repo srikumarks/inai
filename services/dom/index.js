@@ -226,10 +226,13 @@ I.boot = function (name, resid, query, headers, config) {
 
         let mountQueue = [];
         for (let [k,q] of curr) {
-            // If the 'op' key is left out, it defaults to 'set'.
-            let h = q.op ? ophandlers[q.op] : ophandlers.set;
-            if (h) { h(k, q, mountQueue); }
-            else { D.handleServeRequest('post', k, null, null, q); }
+            if (k[0] === '/') {
+                D.handleServeRequest('post', k, null, null, q);
+            } else {
+                // If the 'op' key is left out, it defaults to 'set'.
+                let h = q.op ? ophandlers[q.op] : ophandlers.set;
+                h(k, q, mountQueue);
+            }
         }
 
         for (let i of mountQueue) {
