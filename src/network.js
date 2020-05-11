@@ -204,6 +204,130 @@ Gets/sets the full metadata object form associated with the name.
         return ok();
     };
 
+    // spec is of the following structure.
+    // {
+    //      type: "proxy",
+    //      baseurl: "https://somewhere.com/someroot/",
+    //      methods: ["get", "post"],
+    //      query: {},
+    //      headers: {}
+    // }
+    //
+    // All except type and baseurl are optional.
+    // If methods is omitted, it will be assumed to be ["get"].
+    // Only the listed methods will be permitted.
+    // If query is included, it should be an object of key-value associations.
+    // Both keys and values will need to be strings.
+    // Same holds for headers. The headers will be used as default values,
+    // but can be overridden by headers coming in at request time.
+    // This is useful to set authorization keys, for example that
+    // clients shouldn't need to be aware of.
+    function createProxyService(spec) {
+        if (!spec || spec.type !== 'proxy') { return null; }
+        
+        let proxy = Object.create(I);
+        proxy._permittedMethods = new Set(spec.methods || ["get"]);
+        proxy._baseurl = spec.baseurl;
+        if (!/[/]$/.test(proxy._baseurl)) { proxy._baseurl += '/'; }
+        
+        let baseQuery = spec.query;
+        proxy._baseQueryStr = '';
+        if (baseQuery) {
+            for (let k in baseQuery) {
+                // k shouldn't need encoding.
+                proxy._baseQueryStr += (proxy._baseQueryStr.length > 0 ? '&' : '?') + k + '=' + encodeURIComponent(baseQuery[k]);
+            }
+        }
+
+        proxy._baseHeaders = spec.headers;
+        proxy.route = proxyRouter;
+        return proxy;
+    }
+
+    async function proxyRouter(name, verb, resid, query, headers, body) {
+        if (!this._permittedMethods.has(verb)) {
+            return { status: 405, body: "Method not allowed" };
+        }
+
+        if (resid[0] === '/') { resid = resid.replace(/^[/]+/, ''); }
+        let url = this._baseurl + resid;
+
+        // Collect and prepare headers. Force content type to be application/json
+        let sentHeaders = {};
+        if (this._baseHeaders) {
+            for (let k in this._baseHeaders) {
+                sentHeaders[k] = this._baseHeaders[k];
+            }
+        }
+        if (headers) {
+            for (let k in headers) {
+                sentHeaders[k] = headers[k];
+            }
+        }
+        sentHeaders['content-type'] = 'application/json'; // ALWAYS application/json.
+
+        // Format the query part of the URL if any.
+        let queryStr = this._baseQueryStr;
+        if (query) {
+            for (let k in query) {
+                // k should not need URI encoding.
+                queryStr += (queryStr.length > 0 ? '&' : '?') + k + '=' + encodeURIComponent(''+query[k]);
+            }
+        }
+        if (queryStr.length > 0) {
+            url += queryStr;
+        }
+
+        // Make the request.
+        let response = await fetch(url, {
+            method: verb.toUpperCase(),
+            headers: sentHeaders,
+            body: JSON.stringify(body)
+        });
+
+        // The result headers passed back to the application
+        // will always have lower case keys. If a header
+        // occurs more than once, then the value passed on
+        // will be an array of those values.
+        let status = response.status;
+        let resultHeaders = {};
+        for (let h of response.headers) {
+            let key = h[0].toLowerCase(), val = h[1];
+            if (key in resultHeaders) {
+                let prev = resultHeaders[key];
+                if (!(prev instanceof Array)) {
+                    prev = [prev];
+                    resultHeaders[key] = prev;
+                }
+                prev.push(val);
+            } else {
+                resultHeaders[key] = val;
+            }
+        }
+
+        // We support only application/json in the response. If we
+        // get some other content type, pass on the error, but keep
+        // the status and headers intact in case they provide more
+        // info.
+        let contentType = resultHeaders['content-type'] || 'application/json';
+        if (contentType !== 'application/json') {
+            return {
+                status: status,
+                headers: headers,
+                error: new Error("Unsupported content type in response body")
+            };
+        }
+
+        try {
+            let body = await response.json();
+            return { status: status, headers: resultHeaders, body: body };
+        } catch (e) {
+            // Handle condition when the body isn't well formatted JSON or other garbage.
+            return { status: status, headers: resultHeaders, error: e };
+        }
+    }
+
+
     // Helps load code and launch services. When you put code to this service,
     // it will load the code as a service definition body - i.e. the body
     // of a function with signature function (I, window, document) {...} -
@@ -222,6 +346,7 @@ Gets/sets the full metadata object form associated with the name.
     serviceObj._services = services;
 
     const pathCodeInstances = /^[/]?([^/]+)[/]instances$/;
+    const pathProxies = /^[/]?proxy[/]instances$/;
     const pathCodeSpecificInstance = /^[/]?([^/]+)[/]instances[/]([^/]+)$/;
     
     serviceObj.get = function (name, resid, query, headers) {
@@ -250,11 +375,41 @@ Gets/sets the full metadata object form associated with the name.
      * @param {*} query Not used
      * @param {*} headers Not used
      * @param {*} body JSON object giving initialization parameters. OPTIONAL
+     *
+     * post /proxy/instances
+     * Use to install proxy services. A "proxy" relays the request to a
+     * possibly remote entity and responds with its response 
+     * as though it were the remote entity itself. (Such a proxy is useless
+     * to proxy already local services.)
+     *
+     * body is expected to be -
+     * {type: "proxy", baseurl: "https://somewhere.com/someroot/", methods: ["get", "post"], query: {}, headers: {}}
+     * Responds with id as usual after creating proxy.
+     * You can subsequently map a DNS name to the given id to create a virtual service.
+     * This way, we no longer have to distinguish between whether a service resides
+     * locally or remotely ... reaching Erlang nirvana.
+     *
+     * The proxy implementation uses `fetch` which is polyfilled on nodejs
+     * and is available by default in browsers. So proxying should work
+     * seamlessly from clients as well as servers.
      */
     serviceObj.post = async function (name, resid, query, headers, body) {
         let m = resid.match(pathCodeInstances);
         if (!m || !codeBase.has(m[1])) {
-            return { status: 404, body: 'Not found' };
+            m = resid.match(pathProxies);
+            if (m) {
+                // QUESTION: Should I use a regular service specification to introduce
+                // proxies? Maybe that'll work too, but perhaps only after I'm able to
+                // implement code that can work on both clients and servers using `fetch`
+                // transparently. Maybe next step. The interface is identical, so it shouldn't
+                // matter to other services if the code gets moved out .. as long as I stick
+                // with the name "proxy". Currently proxies can't be queried.
+                let id = random(8);
+                services.set(id, createProxyService(body));
+                return ok(id);
+            } else {
+                return { status: 404, body: 'Not found' };
+            }
         }
 
         let codeId = m[1];

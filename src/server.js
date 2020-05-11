@@ -3,6 +3,12 @@
 // This is so we're ahead of the deprecation curve.
 process.on('unhandledRejection', up => { throw up })
 
+const fetch = require('node-fetch');
+
+if (!globalThis.fetch) {
+    globalThis.fetch = fetch;
+}
+
 /**
  * This module provides a facade between the server side components
  * and the external world that wants to access them. It places some
