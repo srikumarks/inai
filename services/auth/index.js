@@ -486,7 +486,7 @@ I.boot = async function (name, resid, query, headers, config) {
             // Post to a specific groups collection results in it being inserted.
             // TODO: The insertion of a subgroup will not currently have immediate effect.
             // WARNING: The group insertion isn't currently a transaction!
-            let pat = resid.match(/^[/]?groups[/]([-A-Za-z0-9_:]+)[/]?$/);
+            let pat = resid.match(/^[/]?groups[/]([-A-Za-z0-9_.]+)[/]?$/);
             if (pat) {
                 let gs = await I.network(userdb, 'get', '/auth/groups/' + pat[1], null, null);
                 if (gs.status === 200) {
