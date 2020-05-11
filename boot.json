@@ -19,6 +19,7 @@
   "start": [
     "logger_server",
     "kv",
+    "policyman",
     "sql",
     "auth",
     "gauth",

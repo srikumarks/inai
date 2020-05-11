@@ -1,0 +1,15 @@
+{
+  "name": "policyman",
+  "disabled": false,
+  "public": false,
+  "env": [
+    "server"
+  ],
+  "config": {
+      "policies": {
+      }
+  },
+  "dependencies": [
+    "kv"
+  ]
+}
