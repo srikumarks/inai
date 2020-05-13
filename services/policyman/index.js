@@ -134,7 +134,7 @@ function compilePolicy(policy) {
             ')\\s+' + 
             policy.resource +
             '\\s+' +
-            '(?:[|][^\\s]+)*(?:' + policy.groups.map(escapeRegex).join('|') + ')' + '(?:[^\\s]+[|])*'
+            '(?:[|][^\\s]+)*(?:' + policy.groups.map(escapeRegex).join('|') + ')' + '(?:[^\\s]+[|])*' +
         ')'
     );
 }
