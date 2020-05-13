@@ -540,9 +540,16 @@ Gets/sets the full metadata object form associated with the name.
         if (codeInfo && codeInfo.instances.has(id)) {
             console.log("Shutting down " + id);
             orphanServices.delete(id);
-            await I.network(id, 'shutdown', '/', null, null, null);
+            try {
+                await I.network(id, 'shutdown', '/', null, null, null);
+            } catch (e) {
+                // We ignore errors at shutdown and just report them.
+                // We can't have errors propagate in a destructor.
+                console.error(e);
+            }
             codeInfo.instances.delete(id);
             services.delete(id);
+            console.log("Deleted " + id);
             return ok();
         }
 
