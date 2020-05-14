@@ -511,7 +511,11 @@ Gets/sets the full metadata object form associated with the name.
                 let info = codeBase.get(resid);
                 if (info) {
                     info.serviceDef = serviceDef;
-                    for (let id of info.instances) {
+                    // We need to make a copy of which instances to update
+                    // because the process of updating instances will itself
+                    // edit this set.
+                    let instances = [...info.instances];
+                    for (let id of instances) {
                         console.log('Updating "' + resid + '" service with id=' + id);
                         await I.network('_services', 'post', resid + '/instances', {id: id}, null, info.bootConfig.get(id));
                     }
