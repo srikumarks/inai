@@ -93,7 +93,7 @@ I.boot = async function (name, resid, query, headers, config) {
         if (groups.status === 200) {
             let ds = new Set();
             let now = Date.now();
-            if (!groups.body) {
+            if (groups.body) {
                 for (let g of groups.body) {
                     let gs = await getKnownGroup(g, now, ds);
                     if (g2.status === 200) {
