@@ -75,6 +75,25 @@ I.boot = async function (name, resid, query, headers, config) {
     I.user_cache_period_ms = 2 * 60 * 1000; // 2 minutes;
     I.group_cache_period_ms = 15 * 60 * 1000; // 2 minutes;
 
+    await Promise.all([
+     'token_expiry_ms',
+     'earliest_renew_time_ms',
+     'user_cache_period_ms',
+     'group_cache_period_ms'
+    ].map(loadConfig));
+
+    async function loadConfig(name, converter) {
+        let result = await I.network(userdb, 'get', '/auth/_config/' + name, null, null);
+        if (result.status !== 200) { return false; }
+        I[name] = converter ? converter(result.body) : +result.body;
+        return true;
+    }
+
+    function saveConfig(name) {
+        let val = I[name];
+        return I.network(userdb, 'put', '/auth/_config/' + name, null, null, val);
+    }
+
     async function getKnownUser(id) {
         let rec = knownUsers[id];
         let now = Date.now();
@@ -166,18 +185,26 @@ I.boot = async function (name, resid, query, headers, config) {
     I.put = async function (name, resid, query, headers, body) {
         if (/^[/]?_config[/]token_expiry_ms$/.test(resid)) {
             I.token_expiry_ms = +body;
+            console.log("auth[config] token_expiry_ms=" + I.token_expiry_ms);
+            await saveConfig('token_expiry_ms');
             return { status: 200 };
         }
         if (/^[/]?_config[/]earliest_renew_time_ms$/.test(resid)) {
             I.earliest_renew_time_ms = +body;
+            console.log("auth[config] earliest_renew_time_ms=" + I.earliest_renew_time_ms);
+            await saveConfig('earliest_renew_time_ms');
             return { status: 200 };
         }
         if (/^[/]?_config[/]user_cache_period_ms$/.test(resid)) {
             I.user_cache_period_ms = +body;
+            console.log("auth[config] user_cache_period_ms=" + I.user_cache_period_ms);
+            await saveConfig('user_cache_period_ms');
             return { status: 200 };
         }
         if (/^[/]?_config[/]group_cache_period_ms$/.test(resid)) {
             I.group_cache_period_ms = +body;
+            console.log("auth[config] group_cache_period_ms=" + I.group_cache_period_ms);
+            await saveConfig('group_cache_period_ms');
             return { status: 200 };
         }
         return { status: 404, body: 'auth: No such config - ' + resid };
