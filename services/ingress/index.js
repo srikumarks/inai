@@ -57,7 +57,7 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
         // the initialization config is returned in the `inai-args`
         // header, where it is JSON encoded and URI-component encoded
         // so that it won't interfere with the HTTP protocol.
-        router.get('/_codebase/:codeId', withAuth(async function (req, res) {
+        let codebaseHandler = withAuth(async function (req, res) {
             let codeId = req.params.codeId;
             try {
                 let result = await I.network('_codebase', 'get', '/named/' + codeId, null, maybeBranch(req));
@@ -80,7 +80,9 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
                 // No need to do anything. Basically, code not found.
             }
             res.status(404).send('Not found');
-        }));
+        });
+        router.get('/_codebase/:codeId', codebaseHandler);
+        router.get('/:appId/_codebase/:codeId', codebaseHandler);
 
         // See redis_codebase service.
         router.put(/[/]_codebase[/]code[/]([^/]+)$/, onlyLocalhost(async function (req, res) {
@@ -149,7 +151,7 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
         // This offers a point where we can check whether a client actually
         // has permissions to access the service references in the proxy
         // request before forwarding it to this node's internal "network".
-        router.post('/:serviceId/_proxy', withAuth(async function (req, res) {
+        let proxyHandler = withAuth(async function (req, res) {
             let json = req.body;
             let perms = (req.params.serviceId === json.name); // It can access itself.
             if (!perms) {
@@ -186,7 +188,9 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
             } else {
                 res.status(200).json({status: 404, body: "Not found"}); // Don't reveal the _proxy URL as valid unnecessarily.
             }
-        }));
+        });
+        router.post('/:serviceId/_proxy', proxyHandler);
+        router.post('/:appId/:serviceId/_proxy', proxyHandler);
 
         // Any other route end point encountered may be intended for
         // a service marked "public". So check that and pass on the request.
@@ -197,6 +201,7 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
                 let serviceName = m[1];
                 let resid = m[2];
                 let method = req.method.toLowerCase();
+                console.log("====\n",serviceName,"\n",JSON.stringify(resid),"\n",method,"\n====");
                 let spec = await I.network('_dns', 'get', serviceName + '/_meta', null, maybeBranch(req));
                 if (spec.status !== 200) {
                     console.error("Failed to get meta data of " + serviceName);
@@ -212,11 +217,7 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
 
                 try {
                     let result = await I.network(serviceName, method, resid, req.query, req.headers, req.body);
-                    if (result.status >= 200 && result.status < 300) {
-                        sendReply(res, result);
-                    } else {
-                        next();
-                    }
+                    sendReply(res, result);
                 } catch (err) {
                     next();
                 }
