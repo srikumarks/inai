@@ -140,6 +140,8 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
         // at individual services. This end point is protected to be localhost
         // only so that random entities cannot modify configuration information.
         router.put('/:serviceId/_config/:key', onlyLocalhost(async function (req, res) {
+            let serviceId = req.params.serviceId;
+            let key = req.params.key;
             sendReply(res, await I.network(serviceId, 'put', '/_config/' + key, null, maybeBranch(req), req.body));
         }));
 
