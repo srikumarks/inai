@@ -53,6 +53,39 @@ async function boot() {
         headlessServices.push.apply(headlessServices, document.body.getAttribute('inai-boot').trim().split(/\s+/));
     }
 
+    // OPTIMIZATION: Touch off all code. This is a major optimization, but one that
+    // was anticipated all along (see "plan for http2" in the original readme). Prior to
+    // this block, the services we booted one by one, meaning code will be loaded and then
+    // the service booted one by one. We can load and compile all the code concurrently without
+    // interference. So this block below touches off all known code loading activities
+    // so the network fetches can all happen concurrently. This is super visible in
+    // the network tabs of browsers. Where you used to see the code for the services
+    // being fetched one by one, you now see all of the fetches start at the same time
+    // and complete concurrently as the booting activity begins. What is important
+    // (at least for the moment) for us is that the booting sequence for the headless
+    // services complete before the body services start booting.
+    //
+    // Note that some of the services load their own resources, which offers more
+    // opportunity to "http2-ize" the fetches. The server knows about these dependencies
+    // ahead of time anyway and can therefore push down these resources preemptively.
+    // That's the next level of optimization coming up.
+    /**
+     * The body will have elements with "inai" attributes that specify the codeId
+     * of services that must manage this element's display. At the moment I'm
+     * thinking that only one instance should be adequate to manage multiple
+     * elements mapped to the same codeId. The codeId, in other words, determines
+     * some kind of "type" of the element and the service (if relevant) should be
+     * able to handle a colleection of these.
+     */
+    let elements = document.querySelectorAll('[inai]');
+    for (let hs of headlessServices) {
+        loadCode(hs, codeCache);
+    }
+    for (let e of elements) {
+        loadCode(e.getAttribute('inai'), codeCache);
+    }
+
+
     // We protect against repeat specifications of services since the
     // app developer may not know what we start by default.
     let bootedHeadlessServices = new Set();
@@ -65,16 +98,6 @@ async function boot() {
     }
 
     setupDOMObserver(codeCache);
-
-    /**
-     * The body will have elements with "inai" attributes that specify the codeId
-     * of services that must manage this element's display. At the moment I'm
-     * thinking that only one instance should be adequate to manage multiple
-     * elements mapped to the same codeId. The codeId, in other words, determines
-     * some kind of "type" of the element and the service (if relevant) should be
-     * able to handle a colleection of these.
-     */
-    let elements = document.querySelectorAll('[inai]');
 
     // Bind anything with a declared 'inai-target'. Currently supports buttons.
     // NOTE: This is a stop-gap cheap arrangement to do some tests.
@@ -156,35 +179,7 @@ function setupElementService(element, codeCache) {
 
 async function setupService(inai_name, inai_id, codeId, codeCache) {
     let inai_args = serviceArgs(inai_name);
-    let codeP = codeCache[codeId];
-    if (!codeP) {
-        // The code cache stores promises to load the code.
-        // That way, we can ensure that we don't load code
-        // multiple times. Returns the config structure.
-        codeCache[codeId] = codeP = (async () => {
-            // Load the code.
-            let response = await fetch(providerURLBase + '/_codebase/' + codeId, {
-                method: 'GET',
-                headers: stdHeaders(),
-                credentials: 'same-origin'
-            });
-            if (response.status !== 200) {
-                console.error("Couldn't load code [" + codeId + "]")
-                return null;
-            }
-
-            let code = await response.text();
-            let given_args = response.headers.get('inai-args');
-
-            // Compile the code.
-            await I.network('_services', 'put', codeId, null, null, code);
-            if (given_args) {
-                return {config: JSON.parse(decodeURIComponent(given_args))};
-            }
-
-            return {config: null};
-        })();
-    }
+    let codeP = loadCode(codeId, codeCache);
     if (!(await codeP)) {
         return false;
     }
@@ -219,6 +214,39 @@ async function setupService(inai_name, inai_id, codeId, codeCache) {
         await I.network('_dns', 'put', inai_name, null, null, serviceId);
     }
     return true;
+}
+
+function loadCode(codeId, codeCache) {
+    let codeP = codeCache[codeId];
+    if (!codeP) {
+        // The code cache stores promises to load the code.
+        // That way, we can ensure that we don't load code
+        // multiple times. Returns the config structure.
+        codeCache[codeId] = codeP = (async () => {
+            // Load the code.
+            let response = await fetch(providerURLBase + '/_codebase/' + codeId, {
+                method: 'GET',
+                headers: stdHeaders(),
+                credentials: 'same-origin'
+            });
+            if (response.status !== 200) {
+                console.error("Couldn't load code [" + codeId + "]")
+                return null;
+            }
+
+            let code = await response.text();
+            let given_args = response.headers.get('inai-args');
+
+            // Compile the code.
+            await I.network('_services', 'put', codeId, null, null, code);
+            if (given_args) {
+                return {config: JSON.parse(decodeURIComponent(given_args))};
+            }
+
+            return {config: null};
+        })();
+    }
+    return codeP;
 }
 
 function setupControl(control) {
