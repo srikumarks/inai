@@ -4,8 +4,6 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
     let servers = {};
     let nextServerID = 1;
 
-    debugger;
-
     I.post = async function (name, resid, query, headers, body) {
 
         let serverRefID = nextServerID++;

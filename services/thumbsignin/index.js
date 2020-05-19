@@ -110,7 +110,6 @@ I.boot = async function bootFn(name, resid, query, headers, config) {
         let resName = pat[1];
         let res = resources[resName];
         await queue.atomic(async () => {
-            debugger;
             if (res.widget) {
                 let widget = res.widget;
                 res.widget = null;
@@ -131,7 +130,6 @@ I.boot = async function bootFn(name, resid, query, headers, config) {
         let res = resources[resName];
 
         return await queue.atomic(async () => {
-            debugger;
             if (res.widget) {
                 await res.widget.refresh();
                 return { status: 200, body: { ref: resid, message: 'TSI refreshed QR code' } };

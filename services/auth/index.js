@@ -307,8 +307,6 @@ I.boot = async function (name, resid, query, headers, config) {
         return null;
     }
 
-    debugger;
-
     I.post = async function (name, resid, query, headers, body) {
         let givenAuthorization = extractAuthTokenFromHeaders(headers);
         try {
@@ -355,7 +353,6 @@ I.boot = async function (name, resid, query, headers, config) {
                     return { status: 200, headers: headers, body: auth };
                 }
                 case '/token': {
-                    debugger;
                     if (!query || !query.app || !query.salt || !query.time || !query.sig) {
                         // User wants to renew a token. You can just POST to /token
                         // with the appropriate expired token in the authorization header

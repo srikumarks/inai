@@ -23,8 +23,6 @@ I.boot = async function (name, resid, query, headers, config) {
     const tsAppId = config.tsAppId;
     const tsAppSecret = config.tsAppSecret;
 
-    debugger;
-
     I.get = async function (name, resid, query, headers) {
         if (resid === '/_doc') {
             return {
@@ -36,7 +34,6 @@ I.boot = async function (name, resid, query, headers, config) {
 
         if (resid === '/authenticate' || resid === '/register') {
             let userId = null;
-            debugger;
             let authResult = await I.network('auth', 'post', '/check', null, headers);
             if (authResult.status === 200) {
                 userId = authResult.body.user;
@@ -61,8 +58,6 @@ I.boot = async function (name, resid, query, headers, config) {
             }
 
             request = response.body.signedRequest;
-            debugger;
-
             let json = await getJson(request);
 
             return { status: 200, headers: { 'content-type': 'application/json' }, body: JSON.parse(json) };

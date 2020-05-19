@@ -25,7 +25,6 @@ let HmacSigner = require('./hmac_signer');
 I.boot = async function (name, resid, query, headers, config) {
 
     const credentials = config.credentials;
-    debugger;
     const servicesList = Object.keys(credentials).map(c => '- ' + c).join('\n');
     const docResponse = {
         status: 200,
