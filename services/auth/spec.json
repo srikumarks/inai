@@ -33,6 +33,16 @@
       }
     },
     "systemId": "$INAI_AUTH_SYSTEM_ID",
-    "userStore": "kv"
+    "userStore": "kv",
+    "allowedDomains": [
+        "imaginea[.]com",
+        "pramati[.]com",
+        "wavemaker[.]com",
+        "spotcues[.]com",
+        "hyscale[.]com",
+        "apitive[.]com",
+        "groupe[.]com",
+        "[a-z]+[.](?:com|org|co[.]in)"
+    ]
   }
 }

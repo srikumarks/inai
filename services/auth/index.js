@@ -43,6 +43,8 @@ function hmac(secret, data) {
 I.boot = async function (name, resid, query, headers, config) {
     // Set the backing store for user info.
     const userdb = config.userStore || 'kv';
+
+    const allowedDomainsPat = new RegExp('@(?:' + config.allowedDomains.join('|') + ')$');
     
     // Hardcoded for now.
     // TODO: Use the codebase store for app permissions too.
@@ -82,16 +84,15 @@ I.boot = async function (name, resid, query, headers, config) {
      'group_cache_period_ms'
     ].map(loadConfig));
 
-    async function loadConfig(name, converter) {
+    async function loadConfig(name) {
         let result = await I.network(userdb, 'get', '/auth/_config/' + name, null, null);
         if (result.status !== 200) { return false; }
-        I[name] = converter ? converter(result.body) : +result.body;
+        I[name] = result.body;
         return true;
     }
 
     function saveConfig(name) {
-        let val = I[name];
-        return I.network(userdb, 'put', '/auth/_config/' + name, null, null, val);
+        return I.network(userdb, 'put', '/auth/_config/' + name, null, null, I[name]);
     }
 
     async function getKnownUser(id) {
@@ -449,6 +450,9 @@ I.boot = async function (name, resid, query, headers, config) {
                     // number that will otherwise need to be used with clients. So this is
                     // perhaps ok. Haven't thought it through fully.
                     let user = body.user;
+                    if (!user || !user.email || !allowedDomainsPat.test(user.email)) {
+                        throw 'forbidden';
+                    }
                     let token = body.token;
                     let userid = hmac(knownApps[kSystemId].secret, JSON.stringify([user.iss, user.sub, user.email]));
                     let {status,info} = validatedTokenInfo(unpackAuthToken(givenAuthorization));
