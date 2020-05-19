@@ -283,7 +283,7 @@ function setupControl(control) {
         // processed target and recomputing only on demand. Usually though,
         // this is sufficient.
         let target = control.getAttribute('inai-target');
-        let pat = target.match(/^[/]?([^/]+)(.*)$/);
+        let pat = target.match(/^[/]?[/]?([^/]+)(.*)$/);
         let service = pat[1];
         let resid = pat[2];
 
