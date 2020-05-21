@@ -371,7 +371,7 @@ module.exports = function (document, I) {
         clear: clear
     };
 
-    ['div', 'span', 'a', 'p', 'img', 'article', 'section', 'header', 'footer', 'b', 'em', 'strong',
+    ['div', 'span', 'a', 'p', 'i', 'img', 'article', 'section', 'header', 'footer', 'b', 'em', 'strong',
      'form', 'label', 'input', 'textarea', 'button', 'select', 'option', 
      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'nav',
      'blockquote', 'ul', 'ol', 'li', 'dl', 'dt', 'dd', 'pre', 'code', 'em',
