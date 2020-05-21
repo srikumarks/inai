@@ -53,6 +53,9 @@
             if (result.status >= 200 && result.status < 300 && result.token && document.body.hasAttribute('token')) {
                 document.body.setAttribute('token', result.token);
             }
+            if (result.status === 307 && result.headers && result.headers.location) {
+                setTimeout(function () { window.location.href = result.headers.location; }, 100);
+            }
             return result;
         };
 
