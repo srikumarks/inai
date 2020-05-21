@@ -352,7 +352,7 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
         servers = {};
 
         // Close all the servers.
-        for (let serverRef of prevServers) {
+        for (let serverRef in prevServers) {
             await closeServer(await serverRef);
         }
 
