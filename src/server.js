@@ -27,10 +27,26 @@ let I = network.createNode({
 
 I.env = process.env;
 
+function getCmdParam(name, _default) {
+    let pat = new RegExp("^[-][-]" + name + "[=](.+)");
+    for (let i = 2; i < process.argv.length; ++i) {
+        let m = process.argv[i].match(pat);
+        if (m) {
+            return m[1];
+        }
+
+        if (process.argv[i] === '--' + name) {
+            return process.argv[i+1];
+        }
+    }
+
+    return _default;
+}
+
 const crypto = require('crypto');
 const fs = require('fs');
 const port = +(process.env.PORT || 9090);
-const bootFile = process.argv[2] || process.env.BOOTFILE || 'boot.json';
+const bootFile = getCmdParam("bootfile", process.env.BOOTFILE || 'boot.json');
 
 // See boot.json file.
 async function boot(bootFile) {
@@ -38,6 +54,7 @@ async function boot(bootFile) {
     await bootCodebaseService(null, 'redis_codebase', bootSpec.boot[0].config);
     await bootFromSpec(null, bootSpec);
     start(bootSpec.mount);
+    maybeStartPostman();
 }
 
 function bootFromSpec(branch, bootSpec) {
@@ -73,6 +90,79 @@ function onlyLocalhost(fn) {
         }
         return fn(req, res, next).catch((err) => { res.status(503).send(err.toString()); });
     };
+}
+
+// Starts a separate service that simply pipes all HTTP requests to their
+// respective services without any checks. This operates only on localhost
+// though and is useful to Postman test services.
+//
+// The "postman port" is enabled by a command line argument with one of the
+// following forms -
+//
+// --postman=2345
+// --postman 2345
+function maybeStartPostman() {
+    let postmanPort = getCmdParam("postman", null);
+
+    if (!postmanPort) {
+        console.log("No postman local proxy started.");
+        console.log("If you want one, pass `--postman=23456` on the command line,");
+        console.log("where the 23456 is the port number you want the local proxy to");
+        console.log("be served on.");
+        return;
+    }
+
+    postmanPort = +postmanPort;
+
+    let express = require('express');
+
+    const app = express();
+
+    app.use(express.json({ type: 'application/json' }));
+    app.use(express.text({ type: 'text/plain' }));
+
+    const kServicePat = /^[/]([^/]+)((?:[/][^/]+)*)/;
+
+    function transferCookies(headers, res) {
+        if (headers && 'set-cookie' in headers) {
+            let cookies = headers['set-cookie'];
+            delete headers['set-cookie'];
+            for (let cookie of cookies) {
+                res.cookie(cookie.name, cookie.value, cookie);
+            }
+        }
+    }
+
+    function sendReply(res, reply) {
+        res.status(reply.status);
+        if (reply.headers) {
+            transferCookies(reply.headers, res);
+            res.set(reply.headers);
+        }
+        res.send(reply.body);
+        return reply;
+    }
+
+    app.use(async (req, res, next) => {
+        debugger;
+        let path = req.path;
+        let components = path.match(kServicePat);
+        if (!components) {
+            return next();
+        }
+
+        let service = components[1];
+        let resid = components[2];
+
+        let reply = await I.network(service, req.method.toLowerCase(), resid, req.query, req.headers, req.body);
+        sendReply(res, reply);
+        res.end();
+    });
+
+    app.listen(postmanPort, () => {
+        console.log("Postman proxy started on port", postmanPort);
+        console.log("You can make requests to any service from localhost.");
+    });
 }
 
 function start(mountPoint) {
