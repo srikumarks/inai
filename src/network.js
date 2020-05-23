@@ -121,7 +121,7 @@ function createNode(options) {
 
         try {
             let p = policyForService.get(service);
-            if (p) {
+            if (p && !(service === 'auth' && verb === 'post' && resid === '/check')) {
                 let auth = await network('auth', 'post', '/check', query, headers);
                 if (auth.status === 200) {
                     let pat = service + ' ' + verb + ' ' + resid + ' ' + auth.body.groups_pat;

@@ -95,6 +95,12 @@ I.boot = async function (name, resid, query, headers, config) {
         return I.network(userdb, 'put', '/auth/_config/' + name, null, null, I[name]);
     }
 
+    if (!Set.prototype.toJSON) {
+        Set.prototype.toJSON = function () {
+            return [...this];
+        };
+    }
+
     async function getKnownUser(id) {
         let rec = knownUsers[id];
         let now = Date.now();
@@ -116,7 +122,7 @@ I.boot = async function (name, resid, query, headers, config) {
             if (groups.body) {
                 for (let g of groups.body) {
                     let gs = await getKnownGroup(g, now, ds);
-                    if (g2.status === 200) {
+                    if (gs.status === 200) {
                         for (let g2 of gs.body) {
                             user.groups.add(g2);
                         }
@@ -345,7 +351,7 @@ I.boot = async function (name, resid, query, headers, config) {
                     if (tokenInfo.user) {
                         let user = await getKnownUser(tokenInfo.user);
                         if (user.status === 200) {
-                            auth.groups = user.groups;
+                            auth.groups = user.body.groups;
                         }
                     }
                     auth.groups = auth.groups || new Set();
@@ -526,6 +532,24 @@ I.boot = async function (name, resid, query, headers, config) {
                 }
                 delete knownGroups[pat[1]];
                 return { status: 200 };
+            }
+
+            // You can add a user to a group by posting an array of group names to
+            // /users/<userid>/groups
+            pat = resid.match(/^[/]?users[/]([-A-Za-z0-9_]+)[/]groups[/]?$/);
+            if (pat) {
+                let gs = await I.network(userdb, 'get', '/auth/users/' + pat[1] + '/groups', null, null);
+                let s = [];
+                if (gs.status === 200) {
+                    let re = /^[-A-Za-z0-9.]+$/;
+                    body = body.filter(g => re.test(g));
+                    if (body.length === 0) {
+                        return { status: 400, body: 'No valid group names given' };
+                    }
+                    s = [...new Set([...gs.body, ...body])]; // Union of groups.
+                }
+                await I.network(userdb, 'put', '/auth/users/' + pat[1] + '/groups', null, null, s);
+                return { status: 200, body: s };
             }
 
             throw 'forbidden';
