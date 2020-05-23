@@ -49,15 +49,20 @@
 // NOTE: Because service names and group names are used literally, they
 // need to be regex safe. If they match 
 //
+// NOTE: This is not the most general form of policy implementation. It
+// gives a reasonable starting point. For example, it doesn't let you
+// filter requests based on query and body content. Neither does it
+// let you filter responses based on what's being passed out.
+//
 I.boot = async function main(name, resid, query, headers, config) {
     
     let policyMap = new Map();
     
     for (let service in config.policies) {
-        policyMap.set(service, config.policies[service]);
+        await updatePolicies(service, config.policies[service]);
     }
 
-    I.get = async function (name, resid, query, headers) {
+    I.get = function (name, resid, query, headers) {
         let m = resid.match(/^[/]?[/]?([^/]+)$/);
         if (m && policyMap.has(m[1])) {
             return { status: 200, body: policyMap.get(m[1]) };
@@ -65,34 +70,32 @@ I.boot = async function main(name, resid, query, headers, config) {
         return { status: 404 };
     };
 
-    I.post = async function (name, resid, query, headers, body) {
+    I.post = function (name, resid, query, headers, body) {
         let m = resid.match(/^[/]?[/]?([^/]+)$/);
         if (m) {
             let service = m[1];
             let existingPolicies = policyMap.has(service) ? policyMap.get(service) : [];
-            let newPolicies = existingPolicies.concat(body);
-            policyMap.set(newPolicies);
-            await I.network('kv', 'put', '/auth/policies/' + service, null, null, newPolicies);
-            await I.network('_policy', 'put', service, null, null, compilePolicies(service, newPolicies));
-            return { status: 200, body: {service: service, policiesAdded: body.length, totalPolicies: newPolicies.length} };
+            return updatePolicies(service, existingPolicies.concat(body));
         }
 
         return { status: 404 };
     };
 
-    I.put = async function (name, resid, query, headers, body) {
+    I.put = function (name, resid, query, headers, body) {
         let m = resid.match(/^[/]?[/]?([^/]+)$/);
         if (m) {
-            let service = m[1];
-            let newPolicies = body.slice(0);
-            policyMap.set(newPolicies);
-            await I.network('kv', 'put', '/auth/policies/' + service, null, null, newPolicies);
-            await I.network('_policy', 'put', service, null, null, compilePolicies(service, newPolicies));
-            return { status: 200, body: {service: service, totalPolicies: newPolicies.length} };
+            return updatePolicies(m[1], body.slice(0));
         }
 
         return { status: 404 };
     };
+
+    async function updatePolicies(service, ownedPolicies) {
+        policyMap.set(ownedPolicies);
+        await I.network('kv', 'put', '/auth/policies/' + service, null, null, ownedPolicies);
+        await I.network('_policy', 'put', service, null, null, compilePolicies(service, ownedPolicies));
+        return { status: 200, body: {service: service, numpolicies: ownedPolicies.length} };
+    }
 
     I.shutdown = function (name, resid, query, headers) {
         I.boot = main;
@@ -134,7 +137,7 @@ function compilePolicy(policy) {
             ')\\s+' + 
             policy.resource +
             '\\s+' +
-            '(?:[|][^\\s]+)*(?:' + policy.groups.map(escapeRegex).join('|') + ')' + '(?:[^\\s]+[|])*' +
+            '[^\\s]*[|](?:' + policy.groups.map(escapeRegex).join('|') + ')[|]' +
         ')'
     );
 }
