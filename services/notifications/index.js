@@ -26,44 +26,28 @@ You create a div under which notifications will be displayed
 and assign this service to that. Then you can post notifications
 using the id of that div.
 
-Since you can have multiple notifier instances on the same
-page, you may for convenience wish to refer to them using
-an alias irrespective of the page. That will give you
-the ability to use the same service name to post notifications,
-but target the context dependent notifier instance. To do this,
-set the "alias" property of the config to the name you want.
-It goes without saying that the name should be globally unique
-across the pages in which it is used. The alias defaults to
-"notifier" so that you can post to the "notifier" service
-irrespective of which page you're on and still manage to
-get context dependent notifications shown.
-
-If you want a global notifications service, just use the same
-name as the "id" of all the notifier instances. For example,
-you can have
+If you set the 'data-context' attribute on the element to an
+identifier string, then the notifications posted to this service
+instance will be considered to be part of that context. This way,
+notifiers with the same id across multiple pages can show
+different sets of notifications - in a context dependent manner -
+which being referred to using the same name. If you don't want
+such a context dependence, you can omit the 'data-context' attribute
+which will then use the context named 'global'.
 
 \`\`\`
-<div id="notifier" inai="notifications"></div>
+<div id="notifier" inai="notifications" data-context="dashboard"></div>
 \`\`\`
 
-.. everywhere and then you can post to this service using
-
-\`\`\`
-I.network('notifier', 'post', '/', null, null, {
-    type: 'error',
-    html: 'Once upon a time, there was an <b>error</b> message.',
-    expiry_secs: 15
-});
-\`\`\`
+The above will collect and show notifications pertaining to the
+"dashboard" context, though you can post to it using a common id
+"notifier".
 `;
 
 
 I.boot = async function main(name, resid, query, headers, config) {
-    const givenId = document.querySelector('[inai-id="' + I._self + '"]').getAttribute('id');
-    if (config.alias) {
-        await I.network('_dns', 'put', config.alias, null, null, I._self);
-    }
-    const storageId = (config.storageId || "inai-notifications") + '-' + givenId;
+    const context = document.querySelector('[inai-id="' + I._self + '"]').getAttribute('data-context') || 'global';
+    const storageId = (config.storageId || "inai-notifications") + '-' + context;
     const idPat = /^[-._A-Za-z0-9]+$/;
     const expiry_secs = config.expiry_secs || 3600;
     const maxShown = config.maxShown || 2;
@@ -138,7 +122,7 @@ I.boot = async function main(name, resid, query, headers, config) {
             html: body.html,
             time: now,
             light: 'light' in body ? body.light : isLight,
-            expires_at: now + Math.min(expiry_secs, body.expiry_secs || 15) * 1000,
+            expires_at: now + Math.min(expiry_secs, body.expiry_secs || expiry_secs) * 1000,
             shown: false
         });
 
