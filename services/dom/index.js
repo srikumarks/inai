@@ -269,6 +269,10 @@ I.boot = function (name, resid, query, headers, config) {
         return D.handleServeRequest('get', resid, query, headers, body);
     };
 
+    I.delete = function (name, resid, query, headers) {
+        return D.handleServeRequest('delete', resid, query, headers);
+    };
+
     I.boot = null;
     return { status: 200 };
 };

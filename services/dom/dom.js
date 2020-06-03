@@ -277,7 +277,6 @@ module.exports = function (document, I) {
     // it will be called. Otherwise, it will be treated as innerHTML
     // and appended.
     function get(url) {
-        tag = tag || 'span';
         let pat = url.match(kUrlPat);
         if (!pat) { return noop; }
 
@@ -321,7 +320,10 @@ module.exports = function (document, I) {
         endPoints.set(resid, function (method, resid, query, headers, body) {
             if (method === 'delete') {
                 endPoints.delete(resid);
-                return { status: 200 };
+                return theElement.then(el => {
+                    el.remove();
+                    return { status: 200 };
+                });
             }
 
             if (method === 'get') {
