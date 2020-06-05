@@ -14,6 +14,7 @@ export INAI_GAUTH_AUDIENCE3=123456781234-abcdefghijklmnopqrstuvwxyz123456.apps.g
 export INAI_THUMBSIGNIN_ACCESSKEYID=0123456789abcdef0123456789abcdef
 export INAI_THUMBSIGNIN_SECRETKEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 
+export INAI_GHOST_SERVER=http://localhost:2368
 # These are produced by random number generators. Make your own.
 export INAI_AUTH_BROWSER_ID=383289e466a4089e29cb
 export INAI_AUTH_BROWSER_SECRET=de2c430f5ede0f4ce381af89af03227b75a1a9df

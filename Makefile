@@ -25,6 +25,19 @@ test:
 static/inai_web.js: $(shell browserify --list src/client.js)
 	browserify src/client.js > $@
 
+static/inai_web.js.gz: static/inai_web.js
+	./node_modules/.bin/uglifyjs static/inai_web.js | gzip - > static/inai_web.js.gz
+
+redis: workdir/pid
+
+workdir/_db:
+	@-$(db) info > workdir/_db 
+
+workdir/pid: services/redis_codebase/redis.conf
+	@echo Starting codebase server ...
+	@-$(db) shutdown
+	@redis-server $<
+
 include $(service_bdeps)
 
 workdir:
@@ -33,33 +46,26 @@ workdir:
 $(service_bdeps): workdir/%.bdeps: services/%/index.js
 	echo $@ : `browserify --list $<` > $@
 
-workdir/pid: services/redis_codebase/redis.conf
-	@echo Starting codebase server ...
-	@-$(db) shutdown
-	@redis-server $<
-
 $(service_targets): workdir/%.build: workdir/%.bdeps
 	browserify $(patsubst workdir/%.bdeps,services/%/index.js,$<) > $@
 
 $(service_hashes): workdir/%.hash: workdir/%.build
 	shasum $< | awk '{print $$1}' > $@
 
-$(services_deployed): workdir/%.deployed: workdir/%.hash services/%/spec.json workdir/pid
+$(services_deployed): workdir/%.deployed: workdir/%.hash services/%/spec.json workdir/_db
 	@echo Deploying $(patsubst workdir/%.hash,%,$<)
 	@./scripts/deploy.sh $(keyspace) $(patsubst workdir/%.hash,%,$<) > /dev/null
 	@touch $@
 
-workdir/assets_deployed: workdir/pid services/app/template.html $(services_deployed)
-	@shasum services/app/template.html | awk '{print $$1}' > workdir/tmp.hash
-	@cat services/app/template.html | $(db) -x set $(keyspace)assets/`cat workdir/tmp.hash`
-	@$(db) set $(keyspace)assets/`cat workdir/tmp.hash`/meta/type text/html
-	@$(db) set $(keyspace)named/app/assets/template.html `cat workdir/tmp.hash`
-	@rm workdir/tmp.hash
+workdir/assets_deployed: workdir/_db services/app/template.html $(services_deployed)
+	@./scripts/deploy-html.sh app template.html
 	@touch $@
 
 clean:
+ifneq (,$(wildcard workdir/pid))
 	@echo Shutting down redis
 	@-$(db) shutdown
+endif
 	@echo Cleaning work directory
 	@rm -rf workdir
 	@rm -f static/inai_web.js

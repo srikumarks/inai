@@ -353,7 +353,7 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
 
         // Close all the servers.
         for (let serverRef in prevServers) {
-            await closeServer(await serverRef);
+            await closeServer(await prevServers[serverRef]);
         }
 
         return { status: 200, body: 'shutdown' };

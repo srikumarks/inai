@@ -21,7 +21,7 @@
         }
 
         I.route = async function (name, verb, resid, query, headers, body) {
-            let parts = resid.match(/^[/]?([^/]+)(.*)$/);
+            let parts = resid.match(/^[/]?[/]?([^/]+)(.*)$/);
             if (!parts) { return { status: 404, body: 'Not found' }; }
             let service = parts[1];
             let serviceResId = parts[2];
