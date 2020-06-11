@@ -517,7 +517,8 @@ Gets/sets the full metadata object form associated with the name.
                     let instances = [...info.instances];
                     for (let id of instances) {
                         console.log('Updating "' + resid + '" service with id=' + id);
-                        await I.network('_services', 'post', resid + '/instances', {id: id}, null, info.bootConfig.get(id));
+                        let config = 'config' in query ? query.config : info.bootConfig.get(id);
+                        await I.network('_services', 'post', resid + '/instances', {id: id}, null, config);
                     }
                     return ok({instances: [...info.instances]});
                 }

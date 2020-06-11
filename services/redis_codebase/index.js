@@ -244,7 +244,7 @@ async function boot(args) {
                     keyWatchers.set(ref, loop);
                     return true;
                 }
-                onSpecReady(branch, spec, sched, async () => {
+                onSpecReady(branch, spec, sched, async (spec) => {
                     if (spec.disabled || (spec.env.indexOf('server') < 0)) {
                         console.log("Service [" + spec.name + "] loaded, but skipping due to disabled:" + spec.disabled + " or env:" + spec.env);
                         return true;
@@ -252,7 +252,7 @@ async function boot(args) {
                     console.log("Updating service " + spec.name);
                     let codeId = await dbget(db, branch, 'named/' + spec.name + '/code');
                     let code = await dbget(db, branch, 'code/' + codeId);
-                    let r1 = await I.network('_services', 'put', codeId, {mode:'update'}, null, code);
+                    let r1 = await I.network('_services', 'put', codeId, {mode:'update', config:spec.config}, null, code);
                     if (r1.status !== 200) {
                         console.error("Failed to load code for " + codeId);
                         return;
@@ -337,7 +337,7 @@ async function boot(args) {
         }
 
         // All good. Execute the task.
-        I.atomic(task);
+        I.atomic(function () { return task(spec); });
     }
 
     return { status: 200, body: "Started" };
