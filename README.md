@@ -6,7 +6,7 @@
 >
 > You have been warned!
 
-![inai-logo](https://user-images.githubusercontent.com/117721/100186254-b7385480-2f0b-11eb-89e8-d21241689721.png)
+![inai-logo](https://user-images.githubusercontent.com/117721/100187114-6295d900-2f0d-11eb-9f5f-26558e5cd6f0.png)
 
 ## Introduction
 
