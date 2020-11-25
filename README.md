@@ -6,6 +6,8 @@
 >
 > You have been warned!
 
+![inai-logo](https://user-images.githubusercontent.com/117721/100186254-b7385480-2f0b-11eb-89e8-d21241689721.png)
+
 ## Introduction
 
 *Inai* is a prototype application server based on the idea of "what if
