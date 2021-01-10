@@ -314,6 +314,13 @@ async function boot(args) {
                         serviceName +
                         "'"
                 );
+                console.log(
+                    "redis_codebase: spec for " +
+                        serviceName +
+                        " = " +
+                        JSON.stringify(spec)
+                );
+
                 let sched = (ref, loop) => {
                     console.log("Service", spec.name, "waiting for key", ref);
                     keyWatchers.set(ref, loop);
