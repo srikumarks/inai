@@ -1,8 +1,6 @@
 {
-  "name": "uikit",
-  "disabled": false,
-  "public": true,
-  "env": [
-    "browser"
-  ]
+    "name": "uikit",
+    "disabled": false,
+    "public": true,
+    "env": ["browser"]
 }

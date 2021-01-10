@@ -1,4 +1,3 @@
-
 const _docstr = `
 # Location service 
 
@@ -45,10 +44,10 @@ I.boot = async function (name, resid, query, headers, config) {
     const default_options = {
         maximumAge: 10000,
         timeout: 10000,
-        enableHighAccuracy: false
+        enableHighAccuracy: false,
     };
 
-    const available = 'geolocation' in navigator;
+    const available = "geolocation" in navigator;
 
     function pos2obj(pos) {
         return {
@@ -60,30 +59,41 @@ I.boot = async function (name, resid, query, headers, config) {
                 accuracy: pos.coords.accuracy,
                 altitudeAccuracy: pos.coords.altitudeAccuracy,
                 heading: pos.coords.heading,
-                speed: pos.coords.speed
-            }
+                speed: pos.coords.speed,
+            },
         };
     }
-    
+
     // GET /_doc
     // returns the documentation in the body text.
     I.get = async function (name, resid, query, headers) {
-        if (resid === '/_doc') {
+        if (resid === "/_doc") {
             if (!_doc) {
                 // Do it only once. Can't do it at boot time because the boot time
                 // id will be temporary.
-                _doc = { status: 200, headers: { 'content-type': 'text/markdown' }, body: _docstr.replace('{{ref}}', name) };
-            };
+                _doc = {
+                    status: 200,
+                    headers: { "content-type": "text/markdown" },
+                    body: _docstr.replace("{{ref}}", name),
+                };
+            }
             return _doc;
         }
 
         if (/^[/]?geolocation$/.test(resid) && available) {
             return new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition((pos) => {
-                    resolve({ status: 200, body: pos2obj(pos) });
-                }, (err) => {
-                    reject({ status: err_codes[err.code], body: err.message });
-                }, query || default_options);
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        resolve({ status: 200, body: pos2obj(pos) });
+                    },
+                    (err) => {
+                        reject({
+                            status: err_codes[err.code],
+                            body: err.message,
+                        });
+                    },
+                    query || default_options
+                );
             });
         }
 
@@ -91,20 +101,41 @@ I.boot = async function (name, resid, query, headers, config) {
     };
 
     const targetPat = /^[/]?[/]?([^/]+)(.*)$/;
-    
+
     I.post = async function (name, resid, query, headers, body) {
         if (/^[/]?geolocation$/.test(resid) && available) {
             let target = body && body.target && body.target.match(targetPat);
             if (target) {
-                let id = navigator.geolocation.watchPosition((pos) => {
-                    I.network(target[1], 'post', target[2], body.query || null, body.headers || null, pos2obj(pos));
-                }, (err) => {
-                    I.network(target[1], 'post', target[2], body.query || null, body.headers || null, { error: err.code, message: err.message });
-                }, query || default_options);
-                return { status: 200, body: { status: 'ok', ref: '/geolocation/' + id } };
+                let id = navigator.geolocation.watchPosition(
+                    (pos) => {
+                        I.network(
+                            target[1],
+                            "post",
+                            target[2],
+                            body.query || null,
+                            body.headers || null,
+                            pos2obj(pos)
+                        );
+                    },
+                    (err) => {
+                        I.network(
+                            target[1],
+                            "post",
+                            target[2],
+                            body.query || null,
+                            body.headers || null,
+                            { error: err.code, message: err.message }
+                        );
+                    },
+                    query || default_options
+                );
+                return {
+                    status: 200,
+                    body: { status: "ok", ref: "/geolocation/" + id },
+                };
             }
 
-            return { status: 400, body: 'Malformed target' };
+            return { status: 400, body: "Malformed target" };
         }
 
         return { status: 404 };
@@ -112,7 +143,9 @@ I.boot = async function (name, resid, query, headers, config) {
 
     I.delete = async function (name, resid, query, headers) {
         let m = resid.match(/^[/]?geolocation[/]([0-9]+)$/);
-        if (!m || !available) { return { status: 404 }; }
+        if (!m || !available) {
+            return { status: 404 };
+        }
 
         let id = +m[1];
         navigator.geolocation.clearWatch(id);
@@ -122,4 +155,3 @@ I.boot = async function (name, resid, query, headers, config) {
     I.boot = null;
     return { status: 200 };
 };
-

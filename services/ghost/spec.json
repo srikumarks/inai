@@ -1,15 +1,13 @@
 {
-  "name": "ghost",
-  "disabled": false,
-  "public": false,
-  "env": [
-    "server"
-  ],
-  "config": {
-    "url": "$INAI_GHOST_SERVER",
-    "version": "v3",
-    "content_api_key": "$INAI_GHOST_CONTENT_API_KEY",
-    "admin_api_key" : "$INAI_GHOST_ADMIN_API_KEY",
-    "images_base_url": "$INAI_GHOST_SERVER/content"
-  }
+    "name": "ghost",
+    "disabled": false,
+    "public": false,
+    "env": ["server"],
+    "config": {
+        "url": "$INAI_GHOST_SERVER",
+        "version": "v3",
+        "content_api_key": "$INAI_GHOST_CONTENT_API_KEY",
+        "admin_api_key": "$INAI_GHOST_ADMIN_API_KEY",
+        "images_base_url": "$INAI_GHOST_SERVER/content"
+    }
 }

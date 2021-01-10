@@ -1,4 +1,3 @@
-
 const _doc = `
 # Google signin service
 
@@ -42,35 +41,37 @@ The following 'get' requests are supported -
 
 `;
 
-
-
 I.boot = async function (name, resid, query, headers, config) {
     // As per ref: https://developers.google.com/identity/sign-in/web/sign-in
 
     // Insert info about the client id
-    I.dom('gsignin/meta', {
-        op: 'set',
-        tag: 'meta',
+    I.dom("gsignin/meta", {
+        op: "set",
+        tag: "meta",
         once: true,
-        attrs: { name: 'google-signin-client_id', content: config.client_id },
-        childOf: 'head'
+        attrs: { name: "google-signin-client_id", content: config.client_id },
+        childOf: "head",
     });
 
     // Create the platform script element and insert it.
-    I.dom('gsignin/platformScript', {
-        tag: 'script',
+    I.dom("gsignin/platformScript", {
+        tag: "script",
         once: true,
-        attrs: { src: 'https://apis.google.com/js/platform.js', async: true, defer: true },
-        childOf: 'head'
+        attrs: {
+            src: "https://apis.google.com/js/platform.js",
+            async: true,
+            defer: true,
+        },
+        childOf: "head",
     });
 
     // Bind to a specified button. The class name is the indicator
     // that it is the google-signin button.
     // <div class="g-signin2" data-onsuccess="onSignIn"></div>
-    let signinFnName = 'inai3_gsignin_onSignin';
-    I.dom('gsignin/btn', {
-        sel: '.g-signin2',
-        attrs: { "data-onsuccess": signinFnName }
+    let signinFnName = "inai3_gsignin_onSignin";
+    I.dom("gsignin/btn", {
+        sel: ".g-signin2",
+        attrs: { "data-onsuccess": signinFnName },
     });
 
     let appStart = function appStart() {
@@ -82,12 +83,12 @@ I.boot = async function (name, resid, query, headers, config) {
 
         // Once gapi is available, we wait for auth2 to be available
         // to complete further initialization.
-        window.gapi.load('auth2', initSigninV2);
+        window.gapi.load("auth2", initSigninV2);
     };
 
     let auth2 = null;
     let googleUser = null;
-    
+
     let initSigninV2 = function () {
         // There may be a button already poised to do an init.
         // So check for whether the auth instance is available
@@ -96,11 +97,11 @@ I.boot = async function (name, resid, query, headers, config) {
         if (!auth2) {
             auth2 = window.gapi.auth2.init({
                 client_id: config.client_id,
-                
-                // Use the default scope. This scope MUST be the 
+
+                // Use the default scope. This scope MUST be the
                 // same when using a button or when working with
                 // a page that's already signed in.
-                scope: 'email profile openid'
+                scope: "email profile openid",
             });
         }
 
@@ -121,21 +122,36 @@ I.boot = async function (name, resid, query, headers, config) {
 
     let signinChanged = function (val) {
         let target = getTarget();
-        if (!target) { return; }
+        if (!target) {
+            return;
+        }
 
-        return I.network(target.service, 'post', target.res, { event: 'signinChanged' }, null, { state: val });
+        return I.network(
+            target.service,
+            "post",
+            target.res,
+            { event: "signinChanged" },
+            null,
+            { state: val }
+        );
     };
 
     // The "target" is given as a meta tag with name="inai-gsignin-target"
     // and the URL as the target. The URL is expected to be in the format
     // "//service/res" ... where the leading slashes may be omitted.
     let getTarget = function () {
-        let meta = document.head.querySelector('meta[name="inai-gsignin-target"]');
-        if (!meta) { return; }
+        let meta = document.head.querySelector(
+            'meta[name="inai-gsignin-target"]'
+        );
+        if (!meta) {
+            return;
+        }
 
-        let target = meta.getAttribute('content');
-        if (!target) { return; }
-        
+        let target = meta.getAttribute("content");
+        if (!target) {
+            return;
+        }
+
         let pat = target.match(/^[/]?[/]?([^/]+)(.*)$/);
         if (pat) {
             return { service: pat[1], res: pat[2] };
@@ -144,80 +160,115 @@ I.boot = async function (name, resid, query, headers, config) {
 
     let profileAsObject = function (user) {
         let profile = user.getBasicProfile();
-        if (!profile) { return; }
+        if (!profile) {
+            return;
+        }
         return {
             id: profile.getId(),
             name: profile.getName(),
             imageUrl: profile.getImageUrl(),
             email: profile.getEmail(),
-            id_token: user.getAuthResponse().id_token
+            id_token: user.getAuthResponse().id_token,
         };
     };
 
     let refreshValues = async function () {
-        if (auth2){
-            console.log('Refreshing values...');
+        if (auth2) {
+            console.log("Refreshing values...");
 
             googleUser = auth2.currentUser.get();
-            if (!googleUser) { return; }
-    
+            if (!googleUser) {
+                return;
+            }
+
             let target = getTarget();
             if (target) {
                 let userInfo = profileAsObject(googleUser);
                 if (userInfo) {
-                    await I.network(target.service, 'post', target.res, { event: 'signin' }, null, { user: userInfo });
+                    await I.network(
+                        target.service,
+                        "post",
+                        target.res,
+                        { event: "signin" },
+                        null,
+                        { user: userInfo }
+                    );
                 }
             }
         }
-    }
+    };
 
     let userChanged = async function userChanged(guser) {
         let userInfo = profileAsObject(guser);
         if (!userInfo) {
             return { status: 500 };
         }
-        
-        console.log('ID: ' + userInfo.id); // Do not send to your backend! Use an ID token instead.
-        console.log('Name: ' + userInfo.name);
-        console.log('Image URL: ' + userInfo.imageUrl);
-        console.log('Email: ' + userInfo.email); // This is null if the 'email' scope is not present.
+
+        console.log("ID: " + userInfo.id); // Do not send to your backend! Use an ID token instead.
+        console.log("Name: " + userInfo.name);
+        console.log("Image URL: " + userInfo.imageUrl);
+        console.log("Email: " + userInfo.email); // This is null if the 'email' scope is not present.
 
         // id_token must be used to validate login resid on the server.
         // https://developers.google.com/identity/sign-in/web/backend-auth
         if (userInfo.id_token) {
-            console.log('id_token', userInfo.id_token);
-            let result = await I.network('server', 'post', '/gauth/token_signin', null, null, userInfo.id_token);
+            console.log("id_token", userInfo.id_token);
+            let result = await I.network(
+                "server",
+                "post",
+                "/gauth/token_signin",
+                null,
+                null,
+                userInfo.id_token
+            );
             if (result.status === 200) {
-                I.dom('body', {
-                    op: 'set',
-                    sel: 'body',
-                    attrs: { token: result.body.token }
+                I.dom("body", {
+                    op: "set",
+                    sel: "body",
+                    attrs: { token: result.body.token },
                 });
 
-
                 let target = getTarget();
-                if (!target) { return { status: 200 }; }
+                if (!target) {
+                    return { status: 200 };
+                }
 
-                return I.network(target.service, 'post', target.res, { event: 'signin' }, null, { user: userInfo });
+                return I.network(
+                    target.service,
+                    "post",
+                    target.res,
+                    { event: "signin" },
+                    null,
+                    { user: userInfo }
+                );
             }
         }
     };
 
     window[signinFnName] = userChanged;
-    
+
     I.post = async function (name, resid, query, headers, body) {
-        if (resid === '/signout') {
+        if (resid === "/signout") {
             let auth2 = window.gapi.auth2.getAuthInstance();
-            
+
             auth2.signOut().then(function () {
-                console.log('User signed out.');
+                console.log("User signed out.");
 
                 let target = getTarget();
-                if (!target) { return; }
+                if (!target) {
+                    return;
+                }
 
-                return I.network(target.service, 'post', target.res, { event: 'signout' }, null, null);
+                return I.network(
+                    target.service,
+                    "post",
+                    target.res,
+                    { event: "signout" },
+                    null,
+                    null
+                );
             });
-            
+
             return { status: 200 };
         }
 
@@ -225,38 +276,44 @@ I.boot = async function (name, resid, query, headers, config) {
     };
 
     I.get = function (name, resid, query, headers) {
-        if (resid === '/status') {
-            if (!window.gapi || !window.gapi.auth2) { return { status: 503, body: 'Service unavailable' }; }
-            let auth2 = window.gapi.auth2.getAuthInstance();
-            if (!auth2) { return { status: 503, body: 'Service unavailable' }; }
-            if (auth2.isSignedIn.get()) {
-                return { status: 200, body: 'signedin' };
+        if (resid === "/status") {
+            if (!window.gapi || !window.gapi.auth2) {
+                return { status: 503, body: "Service unavailable" };
             }
-            return { status: 200, body: 'signedout' };
+            let auth2 = window.gapi.auth2.getAuthInstance();
+            if (!auth2) {
+                return { status: 503, body: "Service unavailable" };
+            }
+            if (auth2.isSignedIn.get()) {
+                return { status: 200, body: "signedin" };
+            }
+            return { status: 200, body: "signedout" };
         }
 
-        if (!googleUser) { return { status: 404, body: 'No user info' }; }
+        if (!googleUser) {
+            return { status: 404, body: "No user info" };
+        }
         let profile = googleUser.getBasicProfile();
         switch (resid) {
-            case '/user':
-            case '/user/':
-                return { 
+            case "/user":
+            case "/user/":
+                return {
                     status: 200,
                     body: {
                         name: profile.getName(),
                         imageUrl: profile.getImageUrl(),
-                        email: profile.getEmail()
-                    }
+                        email: profile.getEmail(),
+                    },
                 };
-            case '/user/name':
+            case "/user/name":
                 return { status: 200, body: profile.getName() };
-            case '/user/imageurl':
-            case '/user/imageUrl':
+            case "/user/imageurl":
+            case "/user/imageUrl":
                 return { status: 200, body: profile.getImageUrl() };
-            case '/user/email':
+            case "/user/email":
                 return { status: 200, body: profile.getEmail() };
             default:
-                return { status: 404, body: 'Unknown resource' };
+                return { status: 404, body: "Unknown resource" };
         }
     };
 

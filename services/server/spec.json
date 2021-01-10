@@ -1,8 +1,6 @@
 {
-  "name": "server",
-  "disabled": true,
-  "public": true,
-  "env": [
-    "browser"
-  ]
+    "name": "server",
+    "disabled": true,
+    "public": true,
+    "env": ["browser"]
 }

@@ -1,4 +1,3 @@
-
 const _doc = `
 # Vega graphing library
 
@@ -36,24 +35,29 @@ async function requireVega(I, config) {
     window.inaiVegaScriptsAdded = true;
     const scripts = {
         core: "https://cdn.jsdelivr.net/npm/vega@" + config.vega_core_version,
-        lite: "https://cdn.jsdelivr.net/npm/vega-lite@" + config.vega_lite_version,
-        embed: "https://cdn.jsdelivr.net/npm/vega-embed@" + config.vega_embed_version
+        lite:
+            "https://cdn.jsdelivr.net/npm/vega-lite@" +
+            config.vega_lite_version,
+        embed:
+            "https://cdn.jsdelivr.net/npm/vega-embed@" +
+            config.vega_embed_version,
     };
     const symbols = {
         core: "vega",
         lite: "vegaLite",
-        embed: "vegaEmbed"
-    }
+        embed: "vegaEmbed",
+    };
 
-    let t0 = Date.now(), showT = t0 - 1000;
+    let t0 = Date.now(),
+        showT = t0 - 1000;
 
     // Create the platform script element and insert it.
     for (let script in scripts) {
-        I.dom('vega/' + script, {
-            op: 'set',
-            tag: 'script',
+        I.dom("vega/" + script, {
+            op: "set",
+            tag: "script",
             attrs: { src: scripts[script] },
-            childOf: 'head'
+            childOf: "head",
         });
 
         // It looks like we need to properly wait for symbols since
@@ -63,7 +67,13 @@ async function requireVega(I, config) {
         while (!window[symbols[script]]) {
             let now = Date.now();
             if (now - showT >= 1000) {
-                console.log("Waiting for vega " + script + " to load ... (" + (now - t0) + "ms)");
+                console.log(
+                    "Waiting for vega " +
+                        script +
+                        " to load ... (" +
+                        (now - t0) +
+                        "ms)"
+                );
                 showT = now;
             }
             await sleep(100);
@@ -77,15 +87,19 @@ I.boot = async function vegaBoot(name, resid, query, headers, config) {
     await requireVega(I, config);
 
     I.get = async function (name, resid, query, headers) {
-        if (resid === '/_doc') {
-            return { status: 200, headers: { 'content-type': 'text/markdown' }, body: _doc };
+        if (resid === "/_doc") {
+            return {
+                status: 200,
+                headers: { "content-type": "text/markdown" },
+                body: _doc,
+            };
         }
-        return { status: 404, body: 'Not found' };
+        return { status: 404, body: "Not found" };
     };
 
     // Should the vega service be thought of as a global service
     // which can be used to address individual elements containing
-    // graphics, or should a "vega" service be associated with 
+    // graphics, or should a "vega" service be associated with
     // each of the graphics? Currently, I could go with either given
     // that the loading will end up happening on demand. However,
     // having vega associated with the node it is going to draw into
@@ -98,7 +112,10 @@ I.boot = async function vegaBoot(name, resid, query, headers, config) {
             cleanup(I);
         }
         try {
-            let result = await vegaEmbed('[inai-id="' + I._self + '"]', body.spec);
+            let result = await vegaEmbed(
+                '[inai-id="' + I._self + '"]',
+                body.spec
+            );
             I.view = result.view; // Store it away for finalization.
         } catch (e) {
             return { status: 500, body: e.toString() };
@@ -123,7 +140,7 @@ I.boot = async function vegaBoot(name, resid, query, headers, config) {
 
     // If the config already has a spec, use it to initialize the chart.
     if (config.spec) {
-        I.network(name, 'post', '/', null, null, {spec: config.spec});
+        I.network(name, "post", "/", null, null, { spec: config.spec });
     }
 
     return { status: 200, body: "Booted" };

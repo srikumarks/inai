@@ -1,8 +1,6 @@
 {
-  "name": "dom",
-  "disabled": false,
-  "public": true,
-  "env": [
-    "browser"
-  ]
+    "name": "dom",
+    "disabled": false,
+    "public": true,
+    "env": ["browser"]
 }

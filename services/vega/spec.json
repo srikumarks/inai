@@ -1,13 +1,11 @@
 {
-  "name": "vega",
-  "disabled": false,
-  "public": true,
-  "env": [
-    "browser"
-  ],
-  "config": {
-    "vega_core_version": "5",
-    "vega_lite_version": "4",
-    "vega_embed_version": "6"
-  }
+    "name": "vega",
+    "disabled": false,
+    "public": true,
+    "env": ["browser"],
+    "config": {
+        "vega_core_version": "5",
+        "vega_lite_version": "4",
+        "vega_embed_version": "6"
+    }
 }

@@ -1,4 +1,3 @@
-
 let count = 0;
 
 const _doc = `
@@ -22,41 +21,40 @@ the key \`/a/b/c\`, then they end up receiving messages posted to
 target larger or smaller groups of receivers organized in a hierarchy.
 `;
 
-
 function keyParts(key) {
-    key = key.replace(/[/]+/g, '/');
-    key = key.replace(/^[/]/g, '').replace(/[/]$/, '');
-    return key.split('/'); 
+    key = key.replace(/[/]+/g, "/");
+    key = key.replace(/^[/]/g, "").replace(/[/]$/, "");
+    return key.split("/");
 }
 
 function normalizedKey(key) {
-    return '/' + keyParts(key).join('/');
+    return "/" + keyParts(key).join("/");
 }
 
 I.boot = async function boot(name, resid, query, headers, config) {
     let baseId = 1;
     function newId() {
-        return '' + (baseId++);
+        return "" + baseId++;
     }
-    
+
     let bus = new Map();
     let id2keys = new Map();
 
-    // POST /_subs 
+    // POST /_subs
     // with body: {service, prefix, key}
     // Registers for pubsub.
     I.post = function (name, resid, query, headers, body) {
-        if (resid === '/_subs') {
+        if (resid === "/_subs") {
             // Register subscription.
-            // If you register for a key like "/a/b/c", then 
+            // If you register for a key like "/a/b/c", then
             // you'll get messages posted to "/a", "/a/b" and "/a/b/c".
-            let {service, prefix, key} = body;
+            let { service, prefix, key } = body;
             let id = newId();
-            let regRec = {service: service, prefix: prefix, key: key};
+            let regRec = { service: service, prefix: prefix, key: key };
             let parts = keyParts(key);
-            let pkey = '';
+            let pkey = "";
             for (let i = 0; i < parts.length; ++i) {
-                pkey += '/' + parts[i];
+                pkey += "/" + parts[i];
                 if (!bus.has(pkey)) {
                     bus.set(pkey, new Map());
                 }
@@ -66,7 +64,7 @@ I.boot = async function boot(name, resid, query, headers, config) {
                 }
                 id2keys.get(id).add(pkey);
             }
-            return { status: 200, body: {id: id} };
+            return { status: 200, body: { id: id } };
         }
 
         // Received a request to post a message.
@@ -76,25 +74,35 @@ I.boot = async function boot(name, resid, query, headers, config) {
             return { status: 200 };
         }
 
-        for (let [id,target] of targets) {
+        for (let [id, target] of targets) {
             // Note: We shouldn't "await" this.
-            I.network(target.service, 'post', target.prefix + key, query, headers, body);
+            I.network(
+                target.service,
+                "post",
+                target.prefix + key,
+                query,
+                headers,
+                body
+            );
         }
         return { status: 200 };
     };
-    
+
     // GET /_doc
     // returns the documentation in the body text.
     I.get = function (name, resid, query, headers) {
-        if (resid === '/_doc') {
-            return { status: 200, headers: { 'content-type': 'text/markdown' }, body: _doc.replace('{{ref}}', name) };
+        if (resid === "/_doc") {
+            return {
+                status: 200,
+                headers: { "content-type": "text/markdown" },
+                body: _doc.replace("{{ref}}", name),
+            };
         }
-        return { status: 404, body: 'Not found' };
+        return { status: 404, body: "Not found" };
     };
 
-
     // DELETE /_subs/id
-    // Ensures that that subscription with the given id 
+    // Ensures that that subscription with the given id
     // no longer exists.
     I.delete = function (name, resid, query, headers) {
         let subs = resid.match(/^[/]_subs[/]([^/]+)$/);
@@ -114,7 +122,7 @@ I.boot = async function boot(name, resid, query, headers, config) {
         return { status: 404 };
     };
 
-    I.shutdown = function(name, resid, query, headers) {
+    I.shutdown = function (name, resid, query, headers) {
         I.post = null;
         I.get = null;
         I.delete = null;
@@ -125,4 +133,3 @@ I.boot = async function boot(name, resid, query, headers, config) {
     I.boot = null;
     return { status: 200 };
 };
-

@@ -1,8 +1,6 @@
 {
-  "name": "greet",
-  "disabled": false,
-  "public": true,
-  "env": [
-    "browser"
-  ]
+    "name": "greet",
+    "disabled": false,
+    "public": true,
+    "env": ["browser"]
 }

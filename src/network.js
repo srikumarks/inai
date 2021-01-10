@@ -1,9 +1,17 @@
-const AtomicQueue = require('./atomic_queue');
+const AtomicQueue = require("./atomic_queue");
 
-const isNodeJS = (new Function("try {return this===global;}catch(e){return false;}"))();
-const isBrowser = (new Function("try {return this===window;}catch(e){return false;}"))();
+const isNodeJS = new Function(
+    "try {return this===global;}catch(e){return false;}"
+)();
+const isBrowser = new Function(
+    "try {return this===window;}catch(e){return false;}"
+)();
 
-console.log("inai: env detected", "isNodeJS="+isNodeJS, "isBrowser="+isBrowser);
+console.log(
+    "inai: env detected",
+    "isNodeJS=" + isNodeJS,
+    "isBrowser=" + isBrowser
+);
 
 /**
  * This models a "node" that has a local network made available for
@@ -12,11 +20,11 @@ console.log("inai: env detected", "isNodeJS="+isNodeJS, "isBrowser="+isBrowser);
  * responsible for mapping names to service ids and `_services` is
  * responsible for loading code and booting services running on
  * this node.
- * 
+ *
  * Note that both `_dns` and `_services` are themselves registered as
  * services so that the code loading mechanism can be used to replace
  * them too if so desired.
- * 
+ *
  * The primary idea behind this service segregation is to delimit the
  * scope of live code loading (at least for the moment), but there are
  * plenty of nice side effects too, as noted in DESIGN.md. Overall, I
@@ -26,14 +34,18 @@ console.log("inai: env detected", "isNodeJS="+isNodeJS, "isBrowser="+isBrowser);
  */
 function createNode(options) {
     options = options || {};
-    options.log = options.log || {requests: true, responses: true};
+    options.log = options.log || { requests: true, responses: true };
 
     // You can pass in your own logger. The server side currently
     // passes a winston logger and the client side just uses console.log.
     const logger = options.logger || console;
 
     // The server side can use a crypto-secure random generator.
-    const random = options.random || function random(n) { return Math.random().toString().split('.')[1]; };
+    const random =
+        options.random ||
+        function random(n) {
+            return Math.random().toString().split(".")[1];
+        };
 
     // The node is represented by this object which has one async
     // member function in it - `I.network` - which makes a request
@@ -43,10 +55,15 @@ function createNode(options) {
     // general enough to let the services punch through to the external
     // network, or reserve that capability for a particular gateway
     // service on this node. We'll see as we go along.
-    let I = { atomic: atomic, network: network, require: require, route: basicRouter };
+    let I = {
+        atomic: atomic,
+        network: network,
+        require: require,
+        route: basicRouter,
+    };
     let I_base = I;
 
-    // DNS is currently simply a map of user-friendly names to 
+    // DNS is currently simply a map of user-friendly names to
     // service IDs ... which are hashes.
     //
     // OWNED BY `_dns` service
@@ -74,12 +91,12 @@ function createNode(options) {
     // Maps service name to policy regexp for testing against
     // <verb> <resid> |group1|group2|...|
     let policyForService = new Map();
- 
+
     // Atomic ensures that no other atomic block will
-    // run alongside any other one. 
-    // 
+    // run alongside any other one.
+    //
     // pfunc is a function that returns a promise, or, equivalently,
-    // an async function that takes no arguments.    
+    // an async function that takes no arguments.
     let atomicQueue = new AtomicQueue();
 
     function atomic(pfunc) {
@@ -91,7 +108,7 @@ function createNode(options) {
      * communicate with each other through this function. It also makes
      * use of a _dns service which maps names to service IDs which are the
      * analog of IP addresses .. only private to this node.
-     * 
+     *
      * @param {string} service The name of the service. This is as declared
      *                          in the service's `spec.json` file.
      * @param {string} verb One of the standard http verbs .. in lower case.
@@ -108,7 +125,7 @@ function createNode(options) {
         if (services.has(service)) {
             address = service;
         } else {
-            let result = await network('_dns', 'get', service);
+            let result = await network("_dns", "get", service);
             if (result.status === 200) {
                 address = result.body;
             } else {
@@ -117,25 +134,68 @@ function createNode(options) {
         }
 
         let node = services.get(address);
-        if (!node) { return not_found(); }
+        if (!node) {
+            return not_found();
+        }
 
         try {
             let p = policyForService.get(service);
-            if (p && !(service === 'auth' && verb === 'post' && resid === '/check')) {
-                let auth = await network('auth', 'post', '/check', query, headers);
+            if (
+                p &&
+                !(service === "auth" && verb === "post" && resid === "/check")
+            ) {
+                let auth = await network(
+                    "auth",
+                    "post",
+                    "/check",
+                    query,
+                    headers
+                );
                 if (auth.status === 200) {
-                    let pat = service + ' ' + verb + ' ' + resid + ' ' + auth.body.groups_pat;
+                    let pat =
+                        service +
+                        " " +
+                        verb +
+                        " " +
+                        resid +
+                        " " +
+                        auth.body.groups_pat;
                     if (!p.test(pat)) {
-                        return server_error('not_permitted');
+                        return server_error("not_permitted");
                     }
                 } else {
-                    return server_error('not_permitted');
+                    return server_error("not_permitted");
                 }
             }
             let rid = reqid++;
-            if (options.log.requests && canLog(service)) { logger.log('REQ['+rid+']', 'v:'+verb, 'srv:'+service, 'res:'+resid, 'q:'+JSON.stringify(query||null), 'h:'+JSON.stringify(headers||null)); }
-            let result = await node.route(service, verb, resid, query, headers, body, this._self);
-            if (options.log.responses && canLog(service)) { logger.log('RES['+rid+']', 'v:'+verb, 'srv:'+service, 'res:'+resid, 'resp:'+JSON.stringify(result)); }
+            if (options.log.requests && canLog(service)) {
+                logger.log(
+                    "REQ[" + rid + "]",
+                    "v:" + verb,
+                    "srv:" + service,
+                    "res:" + resid,
+                    "q:" + JSON.stringify(query || null),
+                    "h:" + JSON.stringify(headers || null)
+                );
+            }
+            let result = await node.route(
+                service,
+                verb,
+                resid,
+                query,
+                headers,
+                body,
+                this._self
+            );
+            if (options.log.responses && canLog(service)) {
+                logger.log(
+                    "RES[" + rid + "]",
+                    "v:" + verb,
+                    "srv:" + service,
+                    "res:" + resid,
+                    "resp:" + JSON.stringify(result)
+                );
+            }
             return result;
         } catch (e) {
             logger.error("network: " + e);
@@ -145,7 +205,7 @@ function createNode(options) {
 
     // The policy service tells whether a particular service request is permissible.
     let policyObj = Object.create(I);
-    services.set('_policy', policyObj);
+    services.set("_policy", policyObj);
     policyObj.put = function (name, service, query, headers, access) {
         policyForService.set(service, new RegExp(access));
         return { status: 200 };
@@ -168,8 +228,10 @@ function createNode(options) {
     // you can use the 'put' verb.
 
     let dnsObj = Object.create(I);
-    services.set('_dns', dnsObj);
-    dns.set('/_doc', `
+    services.set("_dns", dnsObj);
+    dns.set(
+        "/_doc",
+        `
 # DNS service
 
 ## GET/PUT \`name\`
@@ -180,11 +242,14 @@ maps to that name. PUT will change the mapping.
 ## GET/PUT \`name/_meta\`
 
 Gets/sets the full metadata object form associated with the name.
-    `);
+    `
+    );
     dnsObj._dns = dns;
     dnsObj.get = function (name, resid, query, headers) {
         let entry = dns.get(resid);
-        if (!entry) { return not_found(); }
+        if (!entry) {
+            return not_found();
+        }
 
         return ok(entry); // This can be the address or meta data.
     };
@@ -223,19 +288,27 @@ Gets/sets the full metadata object form associated with the name.
     // This is useful to set authorization keys, for example that
     // clients shouldn't need to be aware of.
     function createProxyService(spec) {
-        if (!spec || spec.type !== 'proxy') { return null; }
-        
+        if (!spec || spec.type !== "proxy") {
+            return null;
+        }
+
         let proxy = Object.create(I);
         proxy._permittedMethods = new Set(spec.methods || ["get"]);
         proxy._baseurl = spec.baseurl;
-        if (!/[/]$/.test(proxy._baseurl)) { proxy._baseurl += '/'; }
-        
+        if (!/[/]$/.test(proxy._baseurl)) {
+            proxy._baseurl += "/";
+        }
+
         let baseQuery = spec.query;
-        proxy._baseQueryStr = '';
+        proxy._baseQueryStr = "";
         if (baseQuery) {
             for (let k in baseQuery) {
                 // k shouldn't need encoding.
-                proxy._baseQueryStr += (proxy._baseQueryStr.length > 0 ? '&' : '?') + k + '=' + encodeURIComponent(baseQuery[k]);
+                proxy._baseQueryStr +=
+                    (proxy._baseQueryStr.length > 0 ? "&" : "?") +
+                    k +
+                    "=" +
+                    encodeURIComponent(baseQuery[k]);
             }
         }
 
@@ -249,7 +322,9 @@ Gets/sets the full metadata object form associated with the name.
             return { status: 405, body: "Method not allowed" };
         }
 
-        if (resid[0] === '/') { resid = resid.replace(/^[/]+/, ''); }
+        if (resid[0] === "/") {
+            resid = resid.replace(/^[/]+/, "");
+        }
         let url = this._baseurl + resid;
 
         // Collect and prepare headers. Force content type to be application/json
@@ -264,14 +339,18 @@ Gets/sets the full metadata object form associated with the name.
                 sentHeaders[k] = headers[k];
             }
         }
-        sentHeaders['content-type'] = 'application/json'; // ALWAYS application/json.
+        sentHeaders["content-type"] = "application/json"; // ALWAYS application/json.
 
         // Format the query part of the URL if any.
         let queryStr = this._baseQueryStr;
         if (query) {
             for (let k in query) {
                 // k should not need URI encoding.
-                queryStr += (queryStr.length > 0 ? '&' : '?') + k + '=' + encodeURIComponent(''+query[k]);
+                queryStr +=
+                    (queryStr.length > 0 ? "&" : "?") +
+                    k +
+                    "=" +
+                    encodeURIComponent("" + query[k]);
             }
         }
         if (queryStr.length > 0) {
@@ -282,7 +361,7 @@ Gets/sets the full metadata object form associated with the name.
         let response = await fetch(url, {
             method: verb.toUpperCase(),
             headers: sentHeaders,
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
         });
 
         // The result headers passed back to the application
@@ -292,7 +371,8 @@ Gets/sets the full metadata object form associated with the name.
         let status = response.status;
         let resultHeaders = {};
         for (let h of response.headers) {
-            let key = h[0].toLowerCase(), val = h[1];
+            let key = h[0].toLowerCase(),
+                val = h[1];
             if (key in resultHeaders) {
                 let prev = resultHeaders[key];
                 if (!(prev instanceof Array)) {
@@ -309,12 +389,12 @@ Gets/sets the full metadata object form associated with the name.
         // get some other content type, pass on the error, but keep
         // the status and headers intact in case they provide more
         // info.
-        let contentType = resultHeaders['content-type'] || 'application/json';
-        if (contentType !== 'application/json') {
+        let contentType = resultHeaders["content-type"] || "application/json";
+        if (contentType !== "application/json") {
             return {
                 status: status,
                 headers: headers,
-                error: new Error("Unsupported content type in response body")
+                error: new Error("Unsupported content type in response body"),
             };
         }
 
@@ -327,31 +407,30 @@ Gets/sets the full metadata object form associated with the name.
         }
     }
 
-
     // Helps load code and launch services. When you put code to this service,
     // it will load the code as a service definition body - i.e. the body
     // of a function with signature function (I, window, document) {...} -
     // where I is the service's state object. The service definition is expected
-    // to define I.get, I.post and such for use by other services via the 
+    // to define I.get, I.post and such for use by other services via the
     // network.
     //
-    // DESIGN NOTE: At the moment, the functionalities of loading code and 
+    // DESIGN NOTE: At the moment, the functionalities of loading code and
     // instantiating the service are both clubbed into a single `put`
     // operation. This is enough for now, though in the future we may want
     // to separate these two aspects - where we're getting into sophisticated
     // services that need multiple instances of the same module.
     let serviceObj = Object.create(I);
-    services.set('_services', serviceObj);
+    services.set("_services", serviceObj);
 
     serviceObj._services = services;
 
     const pathCodeInstances = /^[/]?([^/]+)[/]instances$/;
     const pathProxies = /^[/]?proxy[/]instances$/;
     const pathCodeSpecificInstance = /^[/]?([^/]+)[/]instances[/]([^/]+)$/;
-    
+
     serviceObj.get = function (name, resid, query, headers) {
         // Get all instances.
-        if (resid === '/instances') {
+        if (resid === "/instances") {
             return ok([...services.keys()]);
         }
 
@@ -367,9 +446,9 @@ Gets/sets the full metadata object form associated with the name.
 
     /**
      * Instantiates a service whose code has been loaded already.
-     * 
+     *
      * post <codeid>/instances
-     * 
+     *
      * @param {*} name The name of the service using which it is being invoked.
      * @param {*} resid Of the form "<codeId>/instances".
      * @param {*} query Not used
@@ -378,7 +457,7 @@ Gets/sets the full metadata object form associated with the name.
      *
      * post /proxy/instances
      * Use to install proxy services. A "proxy" relays the request to a
-     * possibly remote entity and responds with its response 
+     * possibly remote entity and responds with its response
      * as though it were the remote entity itself. (Such a proxy is useless
      * to proxy already local services.)
      *
@@ -408,7 +487,7 @@ Gets/sets the full metadata object form associated with the name.
                 services.set(id, createProxyService(body));
                 return ok(id);
             } else {
-                return { status: 404, body: 'Not found' };
+                return { status: 404, body: "Not found" };
             }
         }
 
@@ -442,26 +521,35 @@ Gets/sets the full metadata object form associated with the name.
             // should usually not be a problem. But if they're longer, we may need
             // mechanisms in place that take care of the necessary waiting.
             let old_I = services.get(id);
-            await serviceObj.network(name, 'delete', codeId + '/instances/' + id, null, null, null);
-            if (query && query.retain_state) { I = old_I; }
+            await serviceObj.network(
+                name,
+                "delete",
+                codeId + "/instances/" + id,
+                null,
+                null,
+                null
+            );
+            if (query && query.retain_state) {
+                I = old_I;
+            }
         } else {
             id = id || random(8);
         }
 
         // First boot the service at a temp id.
         // Then swap that id for the real id atomically.
-        let tmpId = id.split('_')[0];
+        let tmpId = id.split("_")[0];
         while (services.has(tmpId)) {
-            tmpId = id + '_' + random(8);
+            tmpId = id + "_" + random(8);
         }
-        
+
         // Any existing service has shutdown now. We can safely create
         // the next one.
         //
         // NOTE: If we create everytime, then we risk growing the prototype
         // chain unboundedly.  So we need to create only when we're not
         // replacing an existing service.
-        let I2 = (I === I_base ? Object.create(I) : I);
+        let I2 = I === I_base ? Object.create(I) : I;
         I2._self = id;
         I2._code = codeId;
 
@@ -472,14 +560,25 @@ Gets/sets the full metadata object form associated with the name.
         //
         // Note that a refactoring of this as codeInfo.serviceDef(I, window, document)
         // will leak codeInfo into the serviceDef function. So don't do it.
-        if (isBrowser) { serviceDef(I2, logger, window, document); } else { serviceDef(I2, logger); }
+        if (isBrowser) {
+            serviceDef(I2, logger, window, document);
+        } else {
+            serviceDef(I2, logger);
+        }
 
         services.set(tmpId, I2);
         codeInfo.instances.add(tmpId);
         codeInfo.bootConfig.set(tmpId, body);
 
         try {
-            let result = await serviceObj.network(tmpId, 'boot', '/', null, null, body);
+            let result = await serviceObj.network(
+                tmpId,
+                "boot",
+                "/",
+                null,
+                null,
+                body
+            );
             if (result.status !== 200) {
                 return result;
             }
@@ -488,7 +587,7 @@ Gets/sets the full metadata object form associated with the name.
             codeInfo.instances.delete(tmpId);
             codeInfo.bootConfig.delete(tmpId);
         }
-        
+
         // Introduce the new service atomically.
         services.set(id, I2);
         codeInfo.instances.add(id);
@@ -500,14 +599,19 @@ Gets/sets the full metadata object form associated with the name.
     // The body is expected to be the full text of the code.
     serviceObj.put = async function (name, resid, query, headers, body) {
         try {
-            let code = '(function ' + (isNodeJS ? '(I, console)' : '(I, console, window, document)') + ' {\n' + body + '\n})';
+            let code =
+                "(function " +
+                (isNodeJS ? "(I, console)" : "(I, console, window, document)") +
+                " {\n" +
+                body +
+                "\n})";
             let serviceDef = inaiEval(resid, code);
-            if (typeof (serviceDef) !== 'function') {
-                return bad_request('Service must provide function body.');
+            if (typeof serviceDef !== "function") {
+                return bad_request("Service must provide function body.");
             }
 
             // If the codeId already exists, then replace the code of any existing instances.
-            if (query && query.mode === 'update') {
+            if (query && query.mode === "update") {
                 let info = codeBase.get(resid);
                 if (info) {
                     info.serviceDef = serviceDef;
@@ -516,17 +620,33 @@ Gets/sets the full metadata object form associated with the name.
                     // edit this set.
                     let instances = [...info.instances];
                     for (let id of instances) {
-                        console.log('Updating "' + resid + '" service with id=' + id);
-                        let config = 'config' in query ? query.config : info.bootConfig.get(id);
-                        await I.network('_services', 'post', resid + '/instances', {id: id}, null, config);
+                        console.log(
+                            'Updating "' + resid + '" service with id=' + id
+                        );
+                        let config =
+                            "config" in query
+                                ? query.config
+                                : info.bootConfig.get(id);
+                        await I.network(
+                            "_services",
+                            "post",
+                            resid + "/instances",
+                            { id: id },
+                            null,
+                            config
+                        );
                     }
-                    return ok({instances: [...info.instances]});
+                    return ok({ instances: [...info.instances] });
                 }
             }
 
             // New codebase. Setup its info record.
-            codeBase.set(resid, {serviceDef: serviceDef, instances: new Set(), bootConfig: new Map()});
-            return ok({instances: []});
+            codeBase.set(resid, {
+                serviceDef: serviceDef,
+                instances: new Set(),
+                bootConfig: new Map(),
+            });
+            return ok({ instances: [] });
         } catch (e) {
             return bad_request(e.toString());
         }
@@ -536,7 +656,7 @@ Gets/sets the full metadata object form associated with the name.
     serviceObj.delete = async function (name, resid, query, headers, body) {
         let m = resid.match(pathCodeSpecificInstance);
         if (!m || !codeBase.has(m[1])) {
-            return { status: 404, body: 'Not found' };
+            return { status: 404, body: "Not found" };
         }
 
         let codeId = m[1];
@@ -546,7 +666,7 @@ Gets/sets the full metadata object form associated with the name.
             console.log("Shutting down " + id);
             orphanServices.delete(id);
             try {
-                await I.network(id, 'shutdown', '/', null, null, null);
+                await I.network(id, "shutdown", "/", null, null, null);
             } catch (e) {
                 // We ignore errors at shutdown and just report them.
                 // We can't have errors propagate in a destructor.
@@ -570,18 +690,18 @@ function basicRouter(name, verb, resid, query, headers, body) {
     let I = this;
     let handler = I[verb];
     if (!handler) {
-        return { status: 400, body: 'Verb [' + verb + '] not supported' };
+        return { status: 400, body: "Verb [" + verb + "] not supported" };
     }
 
     try {
         return handler(name, resid, query, headers, body);
     } catch (err) {
-        return { status: 503, body: 'Internal error' };
+        return { status: 503, body: "Internal error" };
     }
 }
 
 function canLog(service) {
-    return service[0] !== '_';
+    return service[0] !== "_";
 }
 
 function not_found() {
@@ -609,9 +729,9 @@ function inaiEval(name, code) {
         // Make code execution in NodeJS environment a bit controlled
         // using the vm module and running in a restricted context.
         let inaiRequire = require;
-        let vm = inaiRequire('vm');
+        let vm = inaiRequire("vm");
         let context = vm.createContext({
-            setTimeout: setTimeout
+            setTimeout: setTimeout,
         });
         let s = new vm.Script(code, { filename: name });
         return s.runInContext(context);

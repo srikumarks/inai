@@ -1,16 +1,14 @@
 {
-  "name": "tsAuth",
-  "disabled": false,
-  "public": true,
-  "env": [
-    "server"
-  ],
-  "config": {
-    "accessKeyId": "$INAI_THUMBSIGNIN_ACCESSKEYID",
-    "secretKey": "$INAI_THUMBSIGNIN_SECRETKEY",
-    "tsAppId": "$INAI_AUTH_BROWSER_ID",
-    "tsAppSecret": "$INAI_AUTH_BROWSER_SECRET",
-    "tsAPI": "https://api.thumbsignin.com/ts/secure",
-    "redirectURL": "/"
-  }
+    "name": "tsAuth",
+    "disabled": false,
+    "public": true,
+    "env": ["server"],
+    "config": {
+        "accessKeyId": "$INAI_THUMBSIGNIN_ACCESSKEYID",
+        "secretKey": "$INAI_THUMBSIGNIN_SECRETKEY",
+        "tsAppId": "$INAI_AUTH_BROWSER_ID",
+        "tsAppSecret": "$INAI_AUTH_BROWSER_SECRET",
+        "tsAPI": "https://api.thumbsignin.com/ts/secure",
+        "redirectURL": "/"
+    }
 }

@@ -1,9 +1,10 @@
-
 // Kill the server upon unhandled rejection.
 // This is so we're ahead of the deprecation curve.
-process.on('unhandledRejection', up => { throw up })
+process.on("unhandledRejection", (up) => {
+    throw up;
+});
 
-const fetch = require('node-fetch');
+const fetch = require("node-fetch");
 
 if (!globalThis.fetch) {
     globalThis.fetch = fetch;
@@ -15,14 +16,14 @@ if (!globalThis.fetch) {
  * minimal protection via a simple token mechanism and by restricting
  * some calls to only the localhost.
  */
-let network = require('./network');
+let network = require("./network");
 
 let I = network.createNode({
     log: {
-        requests: (process.env.LOG || "requests").indexOf('requests') >= 0,
-        responses: (process.env.LOG || "responses").indexOf('responses') >= 0
+        requests: (process.env.LOG || "requests").indexOf("requests") >= 0,
+        responses: (process.env.LOG || "responses").indexOf("responses") >= 0,
     },
-    random: random
+    random: random,
 });
 
 I.env = process.env;
@@ -35,23 +36,23 @@ function getCmdParam(name, _default) {
             return m[1];
         }
 
-        if (process.argv[i] === '--' + name) {
-            return process.argv[i+1];
+        if (process.argv[i] === "--" + name) {
+            return process.argv[i + 1];
         }
     }
 
     return _default;
 }
 
-const crypto = require('crypto');
-const fs = require('fs');
+const crypto = require("crypto");
+const fs = require("fs");
 const port = +(process.env.PORT || 9090);
-const bootFile = getCmdParam("bootfile", process.env.BOOTFILE || 'boot.json');
+const bootFile = getCmdParam("bootfile", process.env.BOOTFILE || "boot.json");
 
 // See boot.json file.
 async function boot(bootFile) {
-    let bootSpec = JSON.parse(fs.readFileSync(bootFile, 'utf8'));
-    await bootCodebaseService(null, 'redis_codebase', bootSpec.boot[0].config);
+    let bootSpec = JSON.parse(fs.readFileSync(bootFile, "utf8"));
+    await bootCodebaseService(null, "redis_codebase", bootSpec.boot[0].config);
     await bootFromSpec(null, bootSpec);
     start(bootSpec.mount);
     maybeStartPostman();
@@ -62,13 +63,19 @@ function bootFromSpec(branch, bootSpec) {
 
     return new Promise(async (resolve, reject) => {
         for (let service of bootSpec.start) {
-            let spec = await I.network('_codebase', 'get', '/named/'+service, null, brh);
+            let spec = await I.network(
+                "_codebase",
+                "get",
+                "/named/" + service,
+                null,
+                brh
+            );
             if (spec.status !== 200) {
                 console.error("Failed to boot service " + service);
                 continue;
             }
             spec = resolveEnvVar(spec.body);
-            if (spec.disabled || spec.env.indexOf('server') < 0) {
+            if (spec.disabled || spec.env.indexOf("server") < 0) {
                 console.log("Skipping", spec.name);
             } else {
                 I.atomic(() => {
@@ -76,7 +83,9 @@ function bootFromSpec(branch, bootSpec) {
                 });
             }
         }
-        I.atomic(() => { resolve(true); });
+        I.atomic(() => {
+            resolve(true);
+        });
     });
 }
 
@@ -86,9 +95,11 @@ function bootFromSpec(branch, bootSpec) {
 function onlyLocalhost(fn) {
     return function (req, res, next) {
         if (!isLocalhost(req.ip)) {
-            return res.status(403).send('Forbidden from ' + req.ip);
+            return res.status(403).send("Forbidden from " + req.ip);
         }
-        return fn(req, res, next).catch((err) => { res.status(503).send(err.toString()); });
+        return fn(req, res, next).catch((err) => {
+            res.status(503).send(err.toString());
+        });
     };
 }
 
@@ -106,27 +117,31 @@ function maybeStartPostman() {
 
     if (!postmanPort) {
         console.log("No postman local proxy started.");
-        console.log("If you want one, pass `--postman=23456` on the command line,");
-        console.log("where the 23456 is the port number you want the local proxy to");
+        console.log(
+            "If you want one, pass `--postman=23456` on the command line,"
+        );
+        console.log(
+            "where the 23456 is the port number you want the local proxy to"
+        );
         console.log("be served on.");
         return;
     }
 
     postmanPort = +postmanPort;
 
-    let express = require('express');
+    let express = require("express");
 
     const app = express();
 
-    app.use(express.json({ type: 'application/json' }));
-    app.use(express.text({ type: 'text/plain' }));
+    app.use(express.json({ type: "application/json" }));
+    app.use(express.text({ type: "text/plain" }));
 
     const kServicePat = /^[/]([^/]+)((?:[/][^/]+)*)/;
 
     function transferCookies(headers, res) {
-        if (headers && 'set-cookie' in headers) {
-            let cookies = headers['set-cookie'];
-            delete headers['set-cookie'];
+        if (headers && "set-cookie" in headers) {
+            let cookies = headers["set-cookie"];
+            delete headers["set-cookie"];
             for (let cookie of cookies) {
                 res.cookie(cookie.name, cookie.value, cookie);
             }
@@ -154,7 +169,14 @@ function maybeStartPostman() {
         let service = components[1];
         let resid = components[2];
 
-        let reply = await I.network(service, req.method.toLowerCase(), resid, req.query, req.headers, req.body);
+        let reply = await I.network(
+            service,
+            req.method.toLowerCase(),
+            resid,
+            req.query,
+            req.headers,
+            req.body
+        );
         sendReply(res, reply);
         res.end();
     });
@@ -166,82 +188,114 @@ function maybeStartPostman() {
 }
 
 function start(mountPoint) {
-    let express = require('express');
+    let express = require("express");
     const app = express();
     let services = {};
 
     const router = express.Router();
-    router.use(express.json({ type: 'application/json' }));
-    router.use(express.text({ type: 'text/plain' }));
-    router.post(mountPoint, onlyLocalhost(async (req, res) => {
-        let body = req.body;
-        if (!body) { return res.status(500).send('Provide {port:nnnn} in request body'); }
+    router.use(express.json({ type: "application/json" }));
+    router.use(express.text({ type: "text/plain" }));
+    router.post(
+        mountPoint,
+        onlyLocalhost(async (req, res) => {
+            let body = req.body;
+            if (!body) {
+                return res
+                    .status(500)
+                    .send("Provide {port:nnnn} in request body");
+            }
 
-        let service = services[body.port];
-        if (service) {
-            console.log("Service on port " + body.port + " already running");
-            res.status(200).json({ ref: '/' + body.port });
-            return;
-        }
+            let service = services[body.port];
+            if (service) {
+                console.log(
+                    "Service on port " + body.port + " already running"
+                );
+                res.status(200).json({ ref: "/" + body.port });
+                return;
+            }
 
-        let result = await I.network('ingress', 'post', '/', null, null, {
-            port: body.port,
-            mount: body.mount
-        });
+            let result = await I.network("ingress", "post", "/", null, null, {
+                port: body.port,
+                mount: body.mount,
+            });
 
-        if (result.status !== 200) {
+            if (result.status !== 200) {
+                res.status(result.status).json(result.body);
+                return;
+            }
+
+            services[body.port] = {
+                ref: "/" + body.port,
+                ingress_ref: result.body.ref,
+            };
+
+            res.status(200).json({ ref: "/" + body.port });
+        })
+    );
+    router.get(
+        mountPoint,
+        onlyLocalhost(async (req, res) => {
+            res.status(200).json({
+                services: Object.keys(services).map((s) => "/" + s),
+            });
+        })
+    );
+    router.get(
+        mountPoint + ":port",
+        onlyLocalhost(async (req, res) => {
+            if (services[req.params.port]) {
+                res.status(200).json({ port: +req.params.port, active: true });
+            } else {
+                res.status(404).send("not found");
+            }
+        })
+    );
+    router.delete(
+        mountPoint + ":port",
+        onlyLocalhost(async (req, res) => {
+            let port = +req.params.port;
+            if (!services[port]) {
+                // The purpose of the 'delete' request is to ensure, at the end,
+                // that the identified service ceases to exist. If there is no
+                // such service, the request can simply succeed at the task of
+                // ensuring that the non-existent service doesn't exist.
+                res.status(200).send("deleted");
+                return;
+            }
+
+            let serviceInfo = services[port];
+            delete services[port];
+            console.log(JSON.stringify(serviceInfo));
+
+            let result = await I.network(
+                "ingress",
+                "delete",
+                serviceInfo.ingress_ref,
+                null,
+                null
+            );
             res.status(result.status).json(result.body);
-            return;   
-        }
-
-        services[body.port] = {
-            ref: '/' + body.port,
-            ingress_ref: result.body.ref
-        };
-
-        res.status(200).json({ ref: '/' + body.port });
-    }));
-    router.get(mountPoint, onlyLocalhost(async (req, res) => {
-        res.status(200).json({services: Object.keys(services).map(s => '/' + s)});
-    }));
-    router.get(mountPoint + ':port', onlyLocalhost(async (req, res) => {
-        if (services[req.params.port]) {
-            res.status(200).json({port: +(req.params.port), active: true});
-        } else {
-            res.status(404).send('not found');
-        }
-    }));
-    router.delete(mountPoint + ':port', onlyLocalhost(async (req, res) => {
-        let port = +(req.params.port);
-        if (!services[port]) {
-            // The purpose of the 'delete' request is to ensure, at the end,
-            // that the identified service ceases to exist. If there is no
-            // such service, the request can simply succeed at the task of
-            // ensuring that the non-existent service doesn't exist.
-            res.status(200).send('deleted');
-            return;
-        }
-
-        let serviceInfo = services[port];
-        delete services[port];
-        console.log(JSON.stringify(serviceInfo));
-
-        let result = await I.network('ingress', 'delete', serviceInfo.ingress_ref, null, null);
-        res.status(result.status).json(result.body);
-    }));
+        })
+    );
 
     app.use(mountPoint, router);
     app.listen(port, () => {
         console.log("Admin started on port", port);
-        console.log("Use the following curl command to start an ingress service on port 8080.");
+        console.log(
+            "Use the following curl command to start an ingress service on port 8080."
+        );
         console.log("---");
-        console.log('curl -X POST -H "Content-Type: application/json" -d \'{"port":8080,"mount":"/"}\' http://localhost:' + port + mountPoint);
+        console.log(
+            'curl -X POST -H "Content-Type: application/json" -d \'{"port":8080,"mount":"/"}\' http://localhost:' +
+                port +
+                mountPoint
+        );
         console.log("---");
     });
 }
 
 function br_header(branch) {
-    return branch ? { 'inai-branch': branch } : null;
+    return branch ? { "inai-branch": branch } : null;
 }
 
 async function ensureCodeLoaded(branch, codeId) {
@@ -252,10 +306,18 @@ async function ensureCodeLoaded(branch, codeId) {
     //
     // This is alleviated by the fact that we watch for REDIS keyspace
     // events and load code when changes occur.
-    let result = await I.network('_codebase', 'get', '/code/' + codeId, null, br_header(branch));
-    if (result.status !== 200) { throw result; }
+    let result = await I.network(
+        "_codebase",
+        "get",
+        "/code/" + codeId,
+        null,
+        br_header(branch)
+    );
+    if (result.status !== 200) {
+        throw result;
+    }
     let code = result.body;
-    await I.network('_services', 'put', codeId, null, br_header(branch), code);
+    await I.network("_services", "put", codeId, null, br_header(branch), code);
     return true;
 }
 
@@ -285,7 +347,7 @@ async function bootService(branch, spec) {
     let args = spec.config;
     if (spec.boot_deps && spec.boot_deps.length > 0) {
         for (let dep of spec.boot_deps) {
-            let present = await I.network('_dns', 'get', dep, null, null);
+            let present = await I.network("_dns", "get", dep, null, null);
             if (present.status !== 200) {
                 // The service that this service depends on at boot time
                 // isn't present yet. So need to start that. Note that the
@@ -305,7 +367,9 @@ async function bootService(branch, spec) {
                 // WARNING: Due to the "dependencies are already listed" assumption,
                 // it is possible that this ends up in an infinite loop. Should
                 // have a fix for that sometime.
-                console.log("Postponing " + name + " until " + dep + " is available.");
+                console.log(
+                    "Postponing " + name + " until " + dep + " is available."
+                );
                 I.atomic(() => {
                     return bootService(branch, spec);
                 });
@@ -317,16 +381,25 @@ async function bootService(branch, spec) {
     }
     console.log("Booting " + (name || codeId) + " ... ");
     await ensureCodeLoaded(branch, codeId);
-    let result = await I.network('_services', 'post', codeId + '/instances', null, brh, args);
+    let result = await I.network(
+        "_services",
+        "post",
+        codeId + "/instances",
+        null,
+        brh,
+        args
+    );
     if (result.status !== 200) {
-        console.error("bootService: Couldn't do it - " + JSON.stringify(result));
+        console.error(
+            "bootService: Couldn't do it - " + JSON.stringify(result)
+        );
         return null;
     }
     let serviceId = result.body;
     if (name) {
-        await I.network('_dns', 'put', name + '/_meta', null, brh, spec);
-        await I.network('_dns', 'put', serviceId + '/_meta', null, brh, spec);
-        await I.network('_dns', 'put', name, null, brh, serviceId);
+        await I.network("_dns", "put", name + "/_meta", null, brh, spec);
+        await I.network("_dns", "put", serviceId + "/_meta", null, brh, spec);
+        await I.network("_dns", "put", name, null, brh, serviceId);
     }
     console.log("... booted " + name + " [" + serviceId + "]");
     return serviceId;
@@ -337,33 +410,47 @@ async function bootService(branch, spec) {
 // server to load its own codebase then!
 async function bootCodebaseService(branch, codeId, config) {
     let brh = br_header(branch);
-    let src = fs.readFileSync('./services/' + codeId + '/index.js', 'utf8');
-    let name = '_codebase';
-    await I.network('_services', 'put', name, null, brh, src);
-    let result = await I.network('_services', 'post', name + '/instances', null, brh, config);
-    if (result.status !== 200) { throw result; }
+    let src = fs.readFileSync("./services/" + codeId + "/index.js", "utf8");
+    let name = "_codebase";
+    await I.network("_services", "put", name, null, brh, src);
+    let result = await I.network(
+        "_services",
+        "post",
+        name + "/instances",
+        null,
+        brh,
+        config
+    );
+    if (result.status !== 200) {
+        throw result;
+    }
     let serviceId = result.body;
-    await I.network('_dns', 'put', '_codebase', null, brh, serviceId);
-    return '_codebase';
+    await I.network("_dns", "put", "_codebase", null, brh, serviceId);
+    return "_codebase";
 }
 
 function hash(str) {
-    let h = crypto.createHash('sha1');
+    let h = crypto.createHash("sha1");
     h.update(str);
-    return h.digest('hex');
+    return h.digest("hex");
 }
 
 function random(n) {
-    return crypto.randomBytes(n).toString('hex');
+    return crypto.randomBytes(n).toString("hex");
 }
 
 function isLocalhost(ip) {
-    return ip === '127.0.0.1' || ip === 'localhost' || ip === '::1' || ip === '::ffff:127.0.0.1';
+    return (
+        ip === "127.0.0.1" ||
+        ip === "localhost" ||
+        ip === "::1" ||
+        ip === "::ffff:127.0.0.1"
+    );
 }
 
 function isForProfile(meta, profile) {
     // No metadata or environment list implies code usable in all profiles.
-    return !meta || !(meta.env) || (meta.env.indexOf(profile) >= 0);
+    return !meta || !meta.env || meta.env.indexOf(profile) >= 0;
 }
 
 function delay(ms) {

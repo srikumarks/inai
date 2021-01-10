@@ -1,19 +1,14 @@
 {
-  "name": "app",
-  "disabled": false,
-  "public": true,
-  "env": [
-    "server"
-  ],
-  "assets": {
-    "template.html": "template.html"
-  },
-  "config": {
-    "id": "$INAI_AUTH_BROWSER_ID",
-    "secret": "$INAI_AUTH_BROWSER_SECRET"
-  },
-  "dependencies": [
-    "greet",
-    "doc"
-  ]
+    "name": "app",
+    "disabled": false,
+    "public": true,
+    "env": ["server"],
+    "assets": {
+        "template.html": "template.html"
+    },
+    "config": {
+        "id": "$INAI_AUTH_BROWSER_ID",
+        "secret": "$INAI_AUTH_BROWSER_SECRET"
+    },
+    "dependencies": ["greet", "doc"]
 }

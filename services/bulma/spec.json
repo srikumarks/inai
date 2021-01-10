@@ -1,8 +1,6 @@
 {
-  "name": "bulma",
-  "disabled": false,
-  "public": true,
-  "env": [
-    "browser"
-  ]
+    "name": "bulma",
+    "disabled": false,
+    "public": true,
+    "env": ["browser"]
 }

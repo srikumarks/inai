@@ -1,49 +1,53 @@
 {
-  "name": "inai",
-  "version": "0.0.1",
-  "description": "An experiment in using REST principles within a server.",
-  "main": "src/server.js",
-  "dependencies": {
-    "aws-sdk": "^2.641.0",
-    "bulma": "^0.8.2",
-    "express": "^4.17.1",
-    "google-auth-library": "^5.5.1",
-    "mariadb": "^2.1.4",
-    "mysql2": "^2.1.0",
-    "node-fetch": "^2.6.0",
-    "nodemailer": "^6.4.5",
-    "pg": "^7.17.0",
-    "pg-hstore": "^2.3.3",
-    "redis": "^2.8.0",
-    "sass": "^1.26.5",
-    "sequelize": "^5.21.3",
-    "showdown": "^1.9.1",
-    "sqlite3": "^4.1.1",
-    "tedious": "^6.6.5",
-    "winston": "^3.2.1"
-  },
-  "devDependencies": {
-    "browserify": "^16.5.0",
-    "node-sass": "^4.14.0",
-    "uglify-es": "^3.3.9",
-    "webpack": "^4.41.2",
-    "webpack-cli": "^3.3.10"
-  },
-  "scripts": {
-    "start": "node src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Imaginea/inai.git"
-  },
-  "keywords": [
-    "REST"
-  ],
-  "author": "Srikumar K. S. <sriku@imaginea.com>",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/Imaginea/inai/issues"
-  },
-  "homepage": "https://github.com/Imaginea/inai#readme"
+    "name": "inai",
+    "version": "0.0.1",
+    "description": "An experiment in using REST principles within a server.",
+    "main": "src/server.js",
+    "dependencies": {
+        "aws-sdk": "^2.641.0",
+        "bulma": "^0.8.2",
+        "express": "^4.17.1",
+        "google-auth-library": "^5.5.1",
+        "mariadb": "^2.1.4",
+        "mysql2": "^2.1.0",
+        "node-fetch": "^2.6.0",
+        "nodemailer": "^6.4.5",
+        "pg": "^7.17.0",
+        "pg-hstore": "^2.3.3",
+        "redis": "^2.8.0",
+        "sass": "^1.26.5",
+        "sequelize": "^5.21.3",
+        "showdown": "^1.9.1",
+        "sqlite3": "^4.1.1",
+        "tedious": "^6.6.5",
+        "winston": "^3.2.1"
+    },
+    "devDependencies": {
+        "browserify": "^16.5.0",
+        "node-sass": "^4.14.0",
+        "prettier": "^2.2.1",
+        "uglify-es": "^3.3.9",
+        "webpack": "^4.41.2",
+        "webpack-cli": "^3.3.10"
+    },
+    "prettier": {
+        "tabWidth": 4
+    },
+    "scripts": {
+        "start": "node src/server.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Imaginea/inai.git"
+    },
+    "keywords": [
+        "REST"
+    ],
+    "author": "Srikumar K. S. <sriku@imaginea.com>",
+    "license": "Apache-2.0",
+    "bugs": {
+        "url": "https://github.com/Imaginea/inai/issues"
+    },
+    "homepage": "https://github.com/Imaginea/inai#readme"
 }
