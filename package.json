@@ -24,6 +24,8 @@
     },
     "devDependencies": {
         "browserify": "^16.5.0",
+        "husky": ">=4",
+        "lint-staged": ">=10",
         "node-sass": "^4.14.0",
         "prettier": "^2.2.1",
         "uglify-es": "^3.3.9",
@@ -49,5 +51,13 @@
     "bugs": {
         "url": "https://github.com/Imaginea/inai/issues"
     },
-    "homepage": "https://github.com/Imaginea/inai#readme"
+    "homepage": "https://github.com/Imaginea/inai#readme",
+    "husky": {
+        "hooks": {
+            "pre-commit": "lint-staged"
+        }
+    },
+    "lint-staged": {
+        "*.{js,json,css,md}": "prettier --write"
+    }
 }
