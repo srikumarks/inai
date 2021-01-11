@@ -1,17 +1,8 @@
 {
-  "name": "ingress",
-  "disabled": false,
-  "public": false,
-  "env": [
-    "server"
-  ],
-  "config": {},
-  "dependencies": [
-    "logger_server",
-    "kv",
-    "auth",
-    "dom",
-    "server",
-    "doc"
-  ]
+    "name": "ingress",
+    "disabled": false,
+    "public": false,
+    "env": ["server"],
+    "config": {},
+    "dependencies": ["logger_server", "kv", "auth", "dom", "server", "doc"]
 }

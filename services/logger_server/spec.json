@@ -1,8 +1,6 @@
 {
-  "name": "logger_server",
-  "disabled": false,
-  "public": false,
-  "env": [
-    "server"
-  ]
+    "name": "logger_server",
+    "disabled": false,
+    "public": false,
+    "env": ["server"]
 }

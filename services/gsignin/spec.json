@@ -1,11 +1,9 @@
 {
-  "name": "gsignin",
-  "disabled": false,
-  "public": true,
-  "env": [
-    "browser"
-  ],
-  "config": {
-    "client_id": "$INAI_GAUTH_CLIENT"
-  }
+    "name": "gsignin",
+    "disabled": false,
+    "public": true,
+    "env": ["browser"],
+    "config": {
+        "client_id": "$INAI_GAUTH_CLIENT"
+    }
 }

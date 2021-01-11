@@ -1,46 +1,44 @@
 {
-  "mount": "/",
-  "boot": [
-    {
-      "name": "codebase",
-      "codeId": "redis_codebase",
-      "disabled": false,
-      "public": false,
-      "env": [
-        "server"
-      ],
-      "config": {
-        "host": "127.0.0.1",
-        "port": 6380,
-        "keyspace": "/inai/codebase/"
-      }
-    }
-  ],
-  "start": [
-    "logger_server",
-    "kv",
-    "policyman",
-    "sql",
-    "auth",
-    "gauth",
-    "opencpu",
-    "ghost",
-    "dom",
-    "server",
-    "doc",
-    "app",
-    "greet",
-    "gsignin",
-    "uikit",
-    "bulma",
-    "bus",
-    "vega",
-    "ingress",
-    "hmac",
-    "thumbsignin",
-    "tsAuth",
-    "email",
-    "loc",
-    "notifications"
-  ]
+    "mount": "/",
+    "boot": [
+        {
+            "name": "codebase",
+            "codeId": "redis_codebase",
+            "disabled": false,
+            "public": false,
+            "env": ["server"],
+            "config": {
+                "host": "127.0.0.1",
+                "port": 6380,
+                "keyspace": "/inai/codebase/"
+            }
+        }
+    ],
+    "start": [
+        "logger_server",
+        "kv",
+        "policyman",
+        "sql",
+        "auth",
+        "gauth",
+        "opencpu",
+        "ghost",
+        "dom",
+        "server",
+        "doc",
+        "app",
+        "greet",
+        "gsignin",
+        "uikit",
+        "bulma",
+        "bus",
+        "vega",
+        "ingress",
+        "hmac",
+        "thumbsignin",
+        "tsAuth",
+        "email",
+        "loc",
+        "notifications"
+    ]
 }

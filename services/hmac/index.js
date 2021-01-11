@@ -1,4 +1,3 @@
-
 const _doc = `
 # HMAC request signer service
 
@@ -20,32 +19,43 @@ service names are available -
 
 `;
 
-let HmacSigner = require('./hmac_signer');
+let HmacSigner = require("./hmac_signer");
 
 I.boot = async function (name, resid, query, headers, config) {
-
     const credentials = config.credentials;
-    const servicesList = Object.keys(credentials).map(c => '- ' + c).join('\n');
+    const servicesList = Object.keys(credentials)
+        .map((c) => "- " + c)
+        .join("\n");
     const docResponse = {
         status: 200,
-        headers: { 'content-type': 'text/markdown' },
-        body: _doc.replace('{{service_names}}', servicesList)
+        headers: { "content-type": "text/markdown" },
+        body: _doc.replace("{{service_names}}", servicesList),
     };
-    
+
     I.post = function (name, resid, query, headers, body) {
-        if (resid === '/sign') {
-            if (body && (body.service in credentials) && body.request) {
-                return { status: 200, body: { signedRequest: HmacSigner.sign(body.request, credentials[body.service]) } };
+        if (resid === "/sign") {
+            if (body && body.service in credentials && body.request) {
+                return {
+                    status: 200,
+                    body: {
+                        signedRequest: HmacSigner.sign(
+                            body.request,
+                            credentials[body.service]
+                        ),
+                    },
+                };
             }
-            return { status: 400, body: 'Malformed request body' };
+            return { status: 400, body: "Malformed request body" };
         }
-        return { status: 404, body: 'Not found' };
+        return { status: 404, body: "Not found" };
     };
 
     I.get = function (name, resid, query, headers) {
-        if (resid === '/_doc') { return docResponse; }
+        if (resid === "/_doc") {
+            return docResponse;
+        }
 
-        return { status: 404, body: 'Not found' };
+        return { status: 404, body: "Not found" };
     };
 
     // Can boot only once.

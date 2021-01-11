@@ -1,0 +1,10 @@
+{
+    "name": "TEMPLATE",
+    "disabled": false,
+    "public": true,
+    "env": ["server", "browser"],
+    "optional<assets>": [{ "file": "README.md", "type": "text/markdown" }],
+    "config": {
+        "some_key": "some_value"
+    }
+}

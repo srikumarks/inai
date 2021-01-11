@@ -1,4 +1,3 @@
-
 const _doc = `
 # email service
 
@@ -39,47 +38,55 @@ Currently, there is no \`get\` support for message details.
 `;
 
 I.boot = async function bootFn(name, resid, query, headers, config) {
-
-    let nodemailer = I.require('nodemailer');
+    let nodemailer = I.require("nodemailer");
     let transporter = null;
 
-    if (config.transport === 'ses') {
-        let aws = I.require('aws-sdk');
+    if (config.transport === "ses") {
+        let aws = I.require("aws-sdk");
 
         transporter = nodemailer.createTransport({
-            SES: new aws.SES(config)
+            SES: new aws.SES(config),
         });
     }
 
     if (!transporter) {
-        return { status: 500, body: 'Could not create transport' };
+        return { status: 500, body: "Could not create transport" };
     }
 
     I.get = function (name, resid, query, headers) {
-        if (resid === '/_doc') {
-            return { status: 200, headers: { 'content-type': 'text/markdown' }, body: _doc };
+        if (resid === "/_doc") {
+            return {
+                status: 200,
+                headers: { "content-type": "text/markdown" },
+                body: _doc,
+            };
         }
-        return { status: 404, body: 'Not found' };
+        return { status: 404, body: "Not found" };
     };
 
     I.post = async function (name, resid, query, headers, body) {
         let info = await new Promise((resolve, reject) => {
             transporter.sendMail(body, (err, info) => {
-                if (err) { return reject(err); }
+                if (err) {
+                    return reject(err);
+                }
                 resolve(info);
             });
         });
 
-        return { status: 200, body: { envelope: info.envelope, messageId: info.messageId } };
+        return {
+            status: 200,
+            body: { envelope: info.envelope, messageId: info.messageId },
+        };
     };
 
     I.shutdown = async function (name, resid, query, headers) {
         I.boot = bootFn;
         I.post = null;
         I.shutdown = null;
-        return { status: 200, body: 'Ok' };
+        return { status: 200, body: "Ok" };
     };
 
     I.boot = null;
-    return { status: 200, body: 'Ok' };
+    return { status: 200, body: "Ok" };
 };

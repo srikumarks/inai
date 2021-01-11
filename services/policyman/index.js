@@ -1,4 +1,3 @@
-
 /**
  * A single policy has the following structure -
  *      service : string (optional)
@@ -47,7 +46,7 @@
 // character in the resource id optional.
 //
 // NOTE: Because service names and group names are used literally, they
-// need to be regex safe. If they match 
+// need to be regex safe. If they match
 //
 // NOTE: This is not the most general form of policy implementation. It
 // gives a reasonable starting point. For example, it doesn't let you
@@ -55,9 +54,8 @@
 // let you filter responses based on what's being passed out.
 //
 I.boot = async function main(name, resid, query, headers, config) {
-    
     let policyMap = new Map();
-    
+
     for (let service in config.policies) {
         await updatePolicies(service, config.policies[service]);
     }
@@ -74,7 +72,9 @@ I.boot = async function main(name, resid, query, headers, config) {
         let m = resid.match(/^[/]?[/]?([^/]+)$/);
         if (m) {
             let service = m[1];
-            let existingPolicies = policyMap.has(service) ? policyMap.get(service) : [];
+            let existingPolicies = policyMap.has(service)
+                ? policyMap.get(service)
+                : [];
             return updatePolicies(service, existingPolicies.concat(body));
         }
 
@@ -92,9 +92,26 @@ I.boot = async function main(name, resid, query, headers, config) {
 
     async function updatePolicies(service, ownedPolicies) {
         policyMap.set(ownedPolicies);
-        await I.network('kv', 'put', '/auth/policies/' + service, null, null, ownedPolicies);
-        await I.network('_policy', 'put', service, null, null, compilePolicies(service, ownedPolicies));
-        return { status: 200, body: {service: service, numpolicies: ownedPolicies.length} };
+        await I.network(
+            "kv",
+            "put",
+            "/auth/policies/" + service,
+            null,
+            null,
+            ownedPolicies
+        );
+        await I.network(
+            "_policy",
+            "put",
+            service,
+            null,
+            null,
+            compilePolicies(service, ownedPolicies)
+        );
+        return {
+            status: 200,
+            body: { service: service, numpolicies: ownedPolicies.length },
+        };
     }
 
     I.shutdown = function (name, resid, query, headers) {
@@ -111,15 +128,22 @@ I.boot = async function main(name, resid, query, headers, config) {
 };
 
 function compilePolicies(service, policies) {
-    return policies.map(compilePolicy.bind(service)).join('|');
+    return policies.map(compilePolicy.bind(service)).join("|");
 }
 
 function compilePolicy(policy) {
-    if (!policy || !policy.methods || !policy.methods.length || !policy.resource || !policy.groups || !policy.groups.length) {
+    if (
+        !policy ||
+        !policy.methods ||
+        !policy.methods.length ||
+        !policy.resource ||
+        !policy.groups ||
+        !policy.groups.length
+    ) {
         throw new Error("policyman: Invalid policy object");
     }
 
-    policy.methods.forEach(m => {
+    policy.methods.forEach((m) => {
         if (!/^get|put|post|delete$/.test(m)) {
             throw new Error("policyman: Unknown method " + m);
         }
@@ -130,15 +154,17 @@ function compilePolicy(policy) {
     }
 
     return (
-        '(?:' + 
-            escapeRegex(policy.service || this) + 
-            '\\s+(?:' + 
-                policy.methods.join('|') + 
-            ')\\s+' + 
-            policy.resource +
-            '\\s+' +
-            '[^\\s]*[|](?:' + policy.groups.map(escapeRegex).join('|') + ')[|]' +
-        ')'
+        "(?:" +
+        escapeRegex(policy.service || this) +
+        "\\s+(?:" +
+        policy.methods.join("|") +
+        ")\\s+" +
+        policy.resource +
+        "\\s+" +
+        "[^\\s]*[|](?:" +
+        policy.groups.map(escapeRegex).join("|") +
+        ")[|]" +
+        ")"
     );
 }
 
@@ -147,7 +173,5 @@ function escapeRegex(str) {
 }
 
 function placeInSqBrackets(str) {
-    return '[' + str + ']';
+    return "[" + str + "]";
 }
-
-

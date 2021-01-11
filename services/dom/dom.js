@@ -1,27 +1,34 @@
 // Abstracting the main interface on `document` lets us mock the
 // DOM if we want to.
 module.exports = function (document, I) {
-    let svgNS = 'http://www.w3.org/2000/svg';
-    let namespacedTags = {'svg':svgNS, 'rect':svgNS, 'g':svgNS, 'circle':svgNS, 'line':svgNS, 'arc':svgNS};
+    let svgNS = "http://www.w3.org/2000/svg";
+    let namespacedTags = {
+        svg: svgNS,
+        rect: svgNS,
+        g: svgNS,
+        circle: svgNS,
+        line: svgNS,
+        arc: svgNS,
+    };
 
     function isFunction(f) {
-        return typeof(f) === 'function';
+        return typeof f === "function";
     }
 
     function maybeFnVal(val, el) {
-        return typeof(val) === 'function' ? val(el) : val;
+        return typeof val === "function" ? val(el) : val;
     }
 
     function px(num) {
-        return '' + Math.round(num) + 'px';
+        return "" + Math.round(num) + "px";
     }
 
     function pt(num) {
-        return '' + num + 'pt';
+        return "" + num + "pt";
     }
 
-    function rgba(r,g,b,a) {
-        return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+    function rgba(r, g, b, a) {
+        return "rgba(" + r + "," + g + "," + b + "," + a + ")";
     }
 
     // Creates an element with given tag name and settings in other arguments.
@@ -34,14 +41,16 @@ module.exports = function (document, I) {
     // argument list are just added as children as well.
     function e(tag, ...argv) {
         let ns = namespacedTags[tag];
-        let el = ns ? document.createElementNS(ns, tag) : document.createElement(tag);
+        let el = ns
+            ? document.createElementNS(ns, tag)
+            : document.createElement(tag);
         for (let i = 0; i < argv.length; ++i) {
             let arg = argv[i];
-            switch (typeof (arg)) {
-                case 'function':
+            switch (typeof arg) {
+                case "function":
                     el = arg(el) || el;
                     break;
-                case 'string':
+                case "string":
                     el.textContent += arg;
                     break;
                 default:
@@ -84,7 +93,7 @@ module.exports = function (document, I) {
     // let a3 = attrs(a2, 'key5', function (eL) { return ...; });
     function attrs(...kvpairs) {
         return function (el) {
-            for (let i = 0; i < kvpairs.length;) {
+            for (let i = 0; i < kvpairs.length; ) {
                 if (isFunction(kvpairs[i])) {
                     // Permits composition of sets of attributes.
                     el = kvpairs[i](el) || el;
@@ -103,7 +112,7 @@ module.exports = function (document, I) {
     // instead of as an attribute.
     function props(...propsAndValues) {
         return function (el) {
-            for (let i = 0; i < propsAndValues.length;) {
+            for (let i = 0; i < propsAndValues.length; ) {
                 if (isFunction(propsAndValues[i])) {
                     // Permits composition of sets of properties.
                     el = propsAndValues[i](el) || el;
@@ -139,10 +148,18 @@ module.exports = function (document, I) {
                     let cls = clist[i];
                     let instr = cls[0];
                     switch (instr) {
-                        case '+': el.classList.add(cls.substring(1)); break;
-                        case '-': el.classList.remove(cls.substring(1)); break;
-                        case '~': el.classList.toggle(cls.substring(1)); break;
-                        default: el.classList.add(cls); break;
+                        case "+":
+                            el.classList.add(cls.substring(1));
+                            break;
+                        case "-":
+                            el.classList.remove(cls.substring(1));
+                            break;
+                        case "~":
+                            el.classList.toggle(cls.substring(1));
+                            break;
+                        default:
+                            el.classList.add(cls);
+                            break;
                     }
                 }
             }
@@ -155,7 +172,7 @@ module.exports = function (document, I) {
     // argument list.
     function styles(...kvpairs) {
         return function (el) {
-            for (let i = 0; i < kvpairs.length;) {
+            for (let i = 0; i < kvpairs.length; ) {
                 if (isFunction(kvpairs[i])) {
                     el = kvpairs[i](el) || el;
                     ++i;
@@ -194,14 +211,14 @@ module.exports = function (document, I) {
     function handlers(...eventHandlers) {
         function setHandlers(el) {
             for (let i = 0; i < eventHandlers.length; i += 2) {
-                el.addEventListener(eventHandlers[i], eventHandlers[i+1]);
+                el.addEventListener(eventHandlers[i], eventHandlers[i + 1]);
             }
             return el;
         }
 
         setHandlers.remove = function (el) {
             for (let i = 0; i < eventHandlers.length; i += 2) {
-                el.removeEventHandler(eventHandlers[i], eventHandlers[i+1]);
+                el.removeEventHandler(eventHandlers[i], eventHandlers[i + 1]);
             }
             return el;
         };
@@ -226,16 +243,25 @@ module.exports = function (document, I) {
     }
 
     const kUrlPat = /^[/]?[/]?([^/]+)(.+)$/;
-    
+
     function post(url) {
         let match = url.match(kUrlPat);
-        if (!match) { return function (event) { }; }
-        
+        if (!match) {
+            return function (event) {};
+        }
+
         let service = match[1];
         let resid = match[2];
 
         return function (event) {
-            I.network(service, 'post', resid, {event: event.name}, null, event);
+            I.network(
+                service,
+                "post",
+                resid,
+                { event: event.name },
+                null,
+                event
+            );
         };
     }
 
@@ -248,14 +274,14 @@ module.exports = function (document, I) {
 
         function setHandlers(el) {
             for (let i = 0; i < ehs.length; i += 2) {
-                el.addEventListener(ehs[i], ehs[i+1]);
+                el.addEventListener(ehs[i], ehs[i + 1]);
             }
             return el;
         }
 
         setHandlers.remove = function (el) {
             for (let i = 0; i < ehs.length; i += 2) {
-                el.removeEventHandler(ehs[i], ehs[i+1]);
+                el.removeEventHandler(ehs[i], ehs[i + 1]);
             }
             return el;
         };
@@ -265,7 +291,7 @@ module.exports = function (document, I) {
 
     function clear() {
         return function (el) {
-            el.innerHTML = '';
+            el.innerHTML = "";
             return el;
         };
     }
@@ -278,13 +304,15 @@ module.exports = function (document, I) {
     // and appended.
     function get(url) {
         let pat = url.match(kUrlPat);
-        if (!pat) { return noop; }
+        if (!pat) {
+            return noop;
+        }
 
         let service = pat[1];
         let resid = pat[2];
-        
-        let val = Promise.resolve(I.network(service, 'get', resid, null, null));
-        let fn = val.then(result => {
+
+        let val = Promise.resolve(I.network(service, "get", resid, null, null));
+        let fn = val.then((result) => {
             if (result.status === 200) {
                 return compile(result.body);
             }
@@ -295,8 +323,8 @@ module.exports = function (document, I) {
             // There is some non-determinism here. So currently
             // get is safest to use as the sole content provider
             // of a tag.
-            fn.then(f => {
-                if (typeof(f) === 'function') {
+            fn.then((f) => {
+                if (typeof f === "function") {
                     f(el);
                 } else {
                     el.innerHTML += f;
@@ -307,7 +335,7 @@ module.exports = function (document, I) {
     }
 
     const endPoints = new Map();
-    
+
     // Exposes the element operation as an end point to
     // which you can subsequently post content.
     //
@@ -315,29 +343,31 @@ module.exports = function (document, I) {
     // becomes available as soon as you call 'serve'.
     function serve(resid) {
         let resolveElement = null;
-        let theElement = new Promise((resolve, reject) => { resolveElement = resolve; });
+        let theElement = new Promise((resolve, reject) => {
+            resolveElement = resolve;
+        });
         console.assert(resolveElement);
         endPoints.set(resid, function (method, resid, query, headers, body) {
-            if (method === 'delete') {
+            if (method === "delete") {
                 endPoints.delete(resid);
-                return theElement.then(el => {
+                return theElement.then((el) => {
                     el.remove();
                     return { status: 200 };
                 });
             }
 
-            if (method === 'get') {
+            if (method === "get") {
                 return { status: 200, body: theElement };
             }
-            
-            return theElement.then(el => {
+
+            return theElement.then((el) => {
                 let c = compile(body);
-                if (typeof(c) === 'function') {
+                if (typeof c === "function") {
                     c(el);
                 } else {
-                    if (method === 'post') {
+                    if (method === "post") {
                         el.innerHTML += body;
-                    } else if (method === 'put') {
+                    } else if (method === "put") {
                         el.innerHTML = body;
                     }
                 }
@@ -357,7 +387,7 @@ module.exports = function (document, I) {
         }
         return { status: 404 };
     }
-    
+
     const kInstrs = {
         attrs: attrs,
         props: props,
@@ -370,38 +400,90 @@ module.exports = function (document, I) {
         children: children,
         get: get,
         serve: serve,
-        clear: clear
+        clear: clear,
     };
 
-    ['div', 'span', 'a', 'p', 'i', 'img', 'article', 'section', 'header', 'footer', 'b', 'em', 'strong',
-     'form', 'label', 'input', 'textarea', 'button', 'select', 'option', 
-     'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'nav',
-     'blockquote', 'ul', 'ol', 'li', 'dl', 'dt', 'dd', 'pre', 'code', 'em',
-     'small', 'u', 'sup', 'audio', 'video', 'track', 'figure', 'figcaption',
-     'table', 'caption', 'col', 'colgroup', 'tbody', 'td', 'tfoot', 'th',
-     'thead', 'tr'].forEach(
-         function (tag) {
-             kInstrs[tag] = function (...argv) {
-                argv.unshift(tag);
-                return function (el) {
-                    el.appendChild(e.apply(null, argv));
-                };
-            }
-         }
-    );
+    [
+        "div",
+        "span",
+        "a",
+        "p",
+        "i",
+        "img",
+        "article",
+        "section",
+        "header",
+        "footer",
+        "b",
+        "em",
+        "strong",
+        "form",
+        "label",
+        "input",
+        "textarea",
+        "button",
+        "select",
+        "option",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "nav",
+        "blockquote",
+        "ul",
+        "ol",
+        "li",
+        "dl",
+        "dt",
+        "dd",
+        "pre",
+        "code",
+        "em",
+        "small",
+        "u",
+        "sup",
+        "audio",
+        "video",
+        "track",
+        "figure",
+        "figcaption",
+        "table",
+        "caption",
+        "col",
+        "colgroup",
+        "tbody",
+        "td",
+        "tfoot",
+        "th",
+        "thead",
+        "tr",
+    ].forEach(function (tag) {
+        kInstrs[tag] = function (...argv) {
+            argv.unshift(tag);
+            return function (el) {
+                el.appendChild(e.apply(null, argv));
+            };
+        };
+    });
 
     function operator(obj) {
-        for (let k in obj) { return k; }
+        for (let k in obj) {
+            return k;
+        }
     }
 
-    function noop(el) { return el; }
+    function noop(el) {
+        return el;
+    }
 
     /**
      * The 'spec' is a JSON-serializable object from which a DOM
      * representation can be constructed. Here is a sample -
      *
      * {div: [{classes: 'container'}, {attrs: ['id', 'd123']},
-     *        {ul: [{styles: ['font-family', 'sans-serif']}, 
+     *        {ul: [{styles: ['font-family', 'sans-serif']},
      *              {li: "Item one"},
      *              {li: "Item two"}
      *              ]}]}
@@ -416,12 +498,16 @@ module.exports = function (document, I) {
      * </div>
      */
     function compile(spec) {
-        if (typeof(spec) === 'object') {
+        if (typeof spec === "object") {
             let op = operator(spec);
             let fn = kInstrs[op];
-            if (!fn) { return noop; }
+            if (!fn) {
+                return noop;
+            }
             let val = spec[op];
-            if (!(val instanceof Array)) { val = [val]; }
+            if (!(val instanceof Array)) {
+                val = [val];
+            }
             return fn.apply(null, val.map(compile));
         }
         return spec;
@@ -442,6 +528,6 @@ module.exports = function (document, I) {
         props: props,
         tree: tree,
         compile: compile,
-        handleServeRequest: handleServeRequest
+        handleServeRequest: handleServeRequest,
     };
 };

@@ -2,7 +2,7 @@
 // that is used to carve out independent async blocks of
 // code that must not interfere with each other.
 function channel() {
-    let queue = [],     // We'll post a queue of values to the channel.
+    let queue = [], // We'll post a queue of values to the channel.
         callbacks = []; // .. which will be consumed by being pushed
     //    to callbacks.
 
@@ -23,7 +23,7 @@ function channel() {
             // passed to us in `await` situations.
             callbacks.push(onSuccess);
             pump();
-        }
+        },
     };
 }
 
@@ -49,7 +49,9 @@ function AtomicQueue() {
 
     this.atomic = function (pfunc) {
         return new Promise((resolve, reject) => {
-            if (closed) { return reject('closed'); }
+            if (closed) {
+                return reject("closed");
+            }
             queue.post(() => {
                 let p = pfunc();
                 if (p && p.then) {

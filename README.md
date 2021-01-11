@@ -1,4 +1,3 @@
-
 > WARNING: This is a preliminary release for ideation purposes and is not
 > intended to be used in production as it contains no tests and grew out
 > of exploratory coding and testing. All that **will** be added in due
@@ -10,7 +9,7 @@
 
 ## Introduction
 
-*Inai* is a prototype application server based on the idea of "what if
+_Inai_ is a prototype application server based on the idea of "what if
 the internal components of a server were also built to interoperate using
 representational state transfer, or REST?" If this works in the large
 between multi-process and multi-computer distributed systems, do we
@@ -62,15 +61,15 @@ applications - both frontend and backend.
 
 1. Install the prerequisites.
 2. Clone the repository.
-2. `npm install` to get all the dependencies.
-3. `make` to build everything and "deploy" it to a local redis instance.
-4. Ensure your own ids and secrets are reflected in the `start` script.
-5. `./start` to start the server.
+3. `npm install` to get all the dependencies.
+4. `make` to build everything and "deploy" it to a local redis instance.
+5. Ensure your own ids and secrets are reflected in the `start` script.
+6. `./start` to start the server.
 
 That will get you a sample application which supports google authenticated
 login .. to do absolutely nothing interesting except if you're a software
 developer and you're willing to look at how the code - both frontend and
-backend - is structured. 
+backend - is structured.
 
 To see this wonderous creation, visit http://localhost:8080/app .
 To check out what is in the deployed codebase, do `redis-cli -p 6380`.
@@ -162,7 +161,7 @@ See the following for examples -
 
 ## Core services
 
-### _dns
+### \_dns
 
 Performs the function of name mapping so services can communicate with each
 other. The `_dns` is itself a service, which means you can live patch the DNS
@@ -170,7 +169,7 @@ while the system is running. Usually you won't be dealing with this.
 
 See [src/network.js][] for details.
 
-### _services
+### \_services
 
 This is a service used to instantiate other services on the node. Usually, you
 won't have to deal with this either, as all the code that needs this is already
@@ -245,7 +244,7 @@ while a user is interacting with it.
 
 When you build a component, it is bundled into a single file and stored in
 a REDIS database at a key. The code is identified by its sha1 hash and some
-metadata about it is provided from the `spec.json` file. 
+metadata about it is provided from the `spec.json` file.
 
 The server picks up the code and metadata from the REDIS database whenever it
 detects a change in the mapping of a name to a service. It then boots the new
@@ -255,7 +254,7 @@ directed at the new instance.
 While that much seems like something we seem to be doing with libraries like
 file watchers and live reload, the reason there can be some guarantees about
 this working in Inai is that **all the components are decoupled using late
-bound names**. 
+bound names**.
 
 The client side fetches code from the server for each component it uses and
 instantiates it into the requisite number of services over there. Just like
@@ -263,14 +262,3 @@ the server side code, these services can also communicate using the REST
 protocol. For example, you could instantiate a "notifications" service to
 which you can `post` messages to be displayed as notifications. The service
 will manage the necessary DOM updates entirely on its own.
-
-
-
-
-
-
-
-
-
-
-
