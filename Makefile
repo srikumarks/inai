@@ -1,4 +1,6 @@
 $(shell mkdir -p workdir static)
+browserify = ./node_modules/.bin/browserify
+uglifyjs = ./node_modules/.bin/uglifyjs
 db := redis-cli -p 6380
 services := $(shell cat boot.json | jq -r '.start[]')
 service_bdeps := $(patsubst %,workdir/%.bdeps,$(services))
@@ -8,7 +10,7 @@ services_deployed := $(patsubst %,workdir/%.deployed,$(services))
 keyspace := $(shell cat boot.json | jq -r '.boot[0].config.keyspace')
 
 
-all: workdir/.createdir static/inai_web.js $(services_deployed) workdir/assets_deployed 
+all: workdir/.createdir static/inai_web.js $(services_deployed) 
 
 workdir/.createdir:
 	mkdir -p workdir
@@ -22,11 +24,11 @@ test:
 	@echo services_deployed = $(services_deployed)
 	@echo keyspace = $(keyspace)
 
-static/inai_web.js: $(shell browserify --list src/client.js)
-	browserify src/client.js > $@
+static/inai_web.js: $(shell $(browserify) --list src/client.js)
+	$(browserify) src/client.js > $@
 
 static/inai_web.js.gz: static/inai_web.js
-	./node_modules/.bin/uglifyjs static/inai_web.js | gzip - > static/inai_web.js.gz
+	$(uglifyjs) static/inai_web.js | gzip - > static/inai_web.js.gz
 
 redis: workdir/pid
 
@@ -44,10 +46,10 @@ workdir:
 	-mkdir -p workdir
 
 $(service_bdeps): workdir/%.bdeps: services/%/index.js
-	echo $@ : `browserify --list $<` > $@
+	echo $@ : `$(browserify) --list $<` > $@
 
 $(service_targets): workdir/%.build: workdir/%.bdeps
-	browserify $(patsubst workdir/%.bdeps,services/%/index.js,$<) > $@
+	$(browserify) $(patsubst workdir/%.bdeps,services/%/index.js,$<) > $@
 
 $(service_hashes): workdir/%.hash: workdir/%.build
 	shasum $< | awk '{print $$1}' > $@
@@ -55,10 +57,6 @@ $(service_hashes): workdir/%.hash: workdir/%.build
 $(services_deployed): workdir/%.deployed: workdir/%.hash services/%/spec.json workdir/_db
 	@echo Deploying $(patsubst workdir/%.hash,%,$<)
 	@./scripts/deploy.sh $(keyspace) $(patsubst workdir/%.hash,%,$<) > /dev/null
-	@touch $@
-
-workdir/assets_deployed: workdir/_db services/app/template.html $(services_deployed)
-	@./scripts/deploy-html.sh app template.html
 	@touch $@
 
 clean:
