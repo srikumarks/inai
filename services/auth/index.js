@@ -100,7 +100,15 @@ I.boot = async function (name, resid, query, headers, config) {
             null,
             null
         );
-        if (result.status !== 200) {
+
+        // The db service may return normally even if there isn't
+        // a value set for the key. So we'll have to separately
+        // check for null and undefined.
+        if (
+            result.status !== 200 ||
+            result.body === null ||
+            result.body === undefined
+        ) {
             return false;
         }
         I[name] = result.body;
