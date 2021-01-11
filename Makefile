@@ -27,9 +27,12 @@ test:
 static/inai_web.js: $(shell $(browserify) --list src/client.js)
 	$(browserify) src/client.js > $@
 
-static/inai_web.js.gz: static/inai_web.js
+static/inai_web.js.gz: static/inai_web.js static/css/bulma.css $(services_deployed)
 	$(uglifyjs) static/inai_web.js | gzip - > static/inai_web.js.gz
 
+static/css/bulma.css: sass/styles.scss
+	npm run css-build
+	
 redis: workdir/pid
 
 workdir/_db:

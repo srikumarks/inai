@@ -37,7 +37,9 @@
     },
     "scripts": {
         "start": "node src/server.js",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "css-build": "node-sass --omit-source-map-url sass/styles.scss static/css/bulma.css",
+        "css-watch": "npm run css-build -- --watch"
     },
     "repository": {
         "type": "git",
@@ -58,6 +60,6 @@
         }
     },
     "lint-staged": {
-        "*.{js,json,css,md}": "prettier --write"
+        "*.{js,json,scss,md}": "prettier --write"
     }
 }
