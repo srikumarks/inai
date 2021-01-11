@@ -1,4 +1,6 @@
 #!/bin/bash
+# $1 is the service name
+# $2 is the asset file name
 
 db="redis-cli -p 6380"
 keyspace=`cat boot.json | jq -r '.boot[0].config.keyspace'`
