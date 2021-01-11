@@ -3,9 +3,7 @@
     "disabled": false,
     "public": true,
     "env": ["server"],
-    "assets": [
-        { "file": "template.html", "type": "text/html" }
-    ],
+    "assets": [{ "file": "template.html", "type": "text/html" }],
     "config": {
         "id": "$INAI_AUTH_BROWSER_ID",
         "secret": "$INAI_AUTH_BROWSER_SECRET"
