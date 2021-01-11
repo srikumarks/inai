@@ -16,7 +16,7 @@
         "pg-hstore": "^2.3.3",
         "redis": "^2.8.0",
         "sass": "^1.26.5",
-        "sequelize": "^5.21.3",
+        "sequelize": "5.21.5",
         "showdown": "^1.9.1",
         "sqlite3": "^4.1.1",
         "tedious": "^6.6.5",
