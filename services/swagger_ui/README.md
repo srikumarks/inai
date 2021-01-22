@@ -9,3 +9,7 @@ as the body to instantiate the UI for that spec. The spec parameters are
 described [on the docs page][spec].
 
 [spec]: https://github.com/swagger-api/swagger-ui/blob/HEAD/docs/usage/configuration.md
+
+The theme CSS files are from "3.x" version of [swagger-ui-themes][swagger-ui-themes].
+
+[swagger-ui-themes]: https://github.com/ostranme/swagger-ui-themes
