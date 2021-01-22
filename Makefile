@@ -10,7 +10,7 @@ services_deployed := $(patsubst %,workdir/%.deployed,$(services))
 keyspace := $(shell cat boot.json | jq -r '.boot[0].config.keyspace')
 
 
-all: workdir/.createdir static/inai_web.js $(services_deployed) 
+all: workdir/.createdir static/inai_web.js.gz $(services_deployed) 
 
 workdir/.createdir:
 	mkdir -p workdir
