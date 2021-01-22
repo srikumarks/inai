@@ -1,0 +1,21 @@
+{
+    "name": "swagger_ui",
+    "disabled": false,
+    "public": true,
+    "env": ["browser"],
+    "assets": [
+        { "file": "theme-feeling-blue.css", "type": "text/css" },
+        { "file": "theme-flattop.css", "type": "text/css" },
+        { "file": "theme-material.css", "type": "text/css" },
+        { "file": "theme-monokai.css", "type": "text/css" },
+        { "file": "theme-muted.css", "type": "text/css" },
+        { "file": "theme-newspaper.css", "type": "text/css" },
+        { "file": "theme-outline.css", "type": "text/css" }
+    ],
+    "config": {
+        "theme": "flattop",
+        "spec": {
+            "url": "https://petstore.swagger.io/v2/swagger.json"
+        }
+    }
+}

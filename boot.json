@@ -39,6 +39,7 @@
         "tsAuth",
         "email",
         "loc",
-        "notifications"
+        "notifications",
+        "swagger_ui"
     ]
 }
