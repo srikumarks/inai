@@ -119,6 +119,59 @@ I.boot = async function mainBoot(name, resid, query, headers, config) {
         router.get("/_codebase/:codeId", codebaseHandler);
         router.get("/:appId/_codebase/:codeId", codebaseHandler);
 
+        let assetHandler = withAuth(async function (req, res) {
+            let serviceId = req.params.serviceId;
+            let assetName = req.params.assetName;
+
+            try {
+                let result = await I.network(
+                    "_codebase",
+                    "get",
+                    "/named/" + serviceId + "/assets/" + assetName,
+                    null,
+                    maybeBranch(req)
+                );
+                if (result.status !== 200 || !result.body) {
+                    sendReply(res, result);
+                    return;
+                }
+                let assetId = result.body;
+
+                // If assetId exists, type and content are guaranteed to exist.
+                let assetType = (
+                    await I.network(
+                        "_codebase",
+                        "get",
+                        "/assets/" + assetId + "/meta/type"
+                    )
+                ).body;
+                let assetContent = (
+                    await I.network("_codebase", "get", "/assets/" + assetId)
+                ).body;
+                res.type(assetType);
+                res.status(200).send(assetContent);
+                return;
+            } catch (e) {
+                console.error(
+                    "Couldn't fetch codebase " +
+                        codeId +
+                        " (" +
+                        e.toString() +
+                        ")"
+                );
+                // No need to do anything. Basically, code not found.
+            }
+            res.status(404).send("Not found");
+        });
+        router.get(
+            "/_codebase/named/:serviceId/assets/:assetName",
+            assetHandler
+        );
+        router.get(
+            "/:appId/_codebase/named/:serviceId/assets/:assetName",
+            assetHandler
+        );
+
         // See redis_codebase service.
         router.put(
             /[/]_codebase[/]code[/]([^/]+)$/,
