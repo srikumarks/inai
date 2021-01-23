@@ -1,32 +1,49 @@
-var _docstr = null;
-
 I.boot = async function boot(name, resid, query, headers, config) {
-    let _doc = null;
+    let _docstr = null;
+    let _doc = null; // This is the complete response object .. which is a constant
+    // for a given instantiation of the service.
 
     async function getDocResponse() {
         if (!_doc) {
-            // Do it only once. Can't do it at boot time because the boot time
-            // id will be temporary.
+            // Do it only once and on demand so we don't do unnecessary network fetches
+            // or keep around data tha tisn't required.
             if (!_docstr) {
-                let docId = (
-                    await I.network(
-                        "_codebase",
-                        "get",
-                        "/named/TEMPLATE/assets/README.md",
-                        null,
-                        null
-                    )
-                ).body;
+                if (I.dom) {
+                    // Handle it when used client side, which requires a network fetch.
+                    // On the client side, I.dom provides a facade to the "dom" service
+                    // and therefore checking for it is sufficient to detect browser-side
+                    // environment. The URL based fetch does not expose the asset ID
+                    // since it is an internal thing. Note that depending on your application
+                    // mounting root, the "/_codebase" may need to be adjusted appropriately
+                    // with a prefix.
+                    _docstr = await (
+                        await fetch(
+                            "/_codebase/named/TEMPLATE/assets/README.md"
+                        )
+                    ).text();
+                } else {
+                    // On server side, it turns into a DB lookup via the "_codebase"
+                    // service.
+                    let docId = (
+                        await I.network(
+                            "_codebase",
+                            "get",
+                            "/named/TEMPLATE/assets/README.md",
+                            null,
+                            null
+                        )
+                    ).body;
 
-                _docstr = (
-                    await I.network(
-                        "_codebase",
-                        "get",
-                        "/assets/" + docId,
-                        null,
-                        null
-                    )
-                ).body;
+                    _docstr = (
+                        await I.network(
+                            "_codebase",
+                            "get",
+                            "/assets/" + docId,
+                            null,
+                            null
+                        )
+                    ).body;
+                }
             }
 
             _doc = {
