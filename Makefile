@@ -1,6 +1,6 @@
 $(shell mkdir -p workdir static)
-browserify = ./node_modules/.bin/browserify
-uglifyjs = ./node_modules/.bin/uglifyjs
+browserify = npx browserify
+uglifyjs = npx uglifyjs
 db := redis-cli -p 6380
 services := $(shell cat boot.json | jq -r '.start[]')
 service_bdeps := $(patsubst %,workdir/%.bdeps,$(services))

@@ -3,7 +3,10 @@
     "disabled": false,
     "public": true,
     "env": ["server", "browser"],
-    "optional<assets>": [{ "file": "README.md", "type": "text/markdown" }],
+    "optional<assets>": [
+        { "file": "README.md", "type": "text/markdown" },
+        { "file": "compiled.css", "type": "text/css" }
+    ],
     "config": {
         "some_key": "some_value"
     }
