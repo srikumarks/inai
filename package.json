@@ -4,6 +4,7 @@
     "description": "An experiment in using REST principles within a server.",
     "main": "src/server.js",
     "dependencies": {
+        "autoprefixer": "^10.2.3",
         "aws-sdk": "^2.641.0",
         "bulma": "^0.8.2",
         "express": "^4.17.1",
@@ -14,12 +15,15 @@
         "nodemailer": "^6.4.5",
         "pg": "^7.17.0",
         "pg-hstore": "^2.3.3",
+        "postcss": "^8.2.4",
+        "postcss-cli": "^8.3.1",
         "redis": "^2.8.0",
         "sass": "^1.26.5",
         "sequelize": "5.21.5",
         "showdown": "^1.9.1",
         "sqlite3": "^4.1.1",
         "swagger-ui": "^3.40.0",
+        "tailwindcss": "^2.0.2",
         "tedious": "9.2.3",
         "winston": "^3.2.1"
     },
@@ -62,5 +66,11 @@
     },
     "lint-staged": {
         "*.{js,json,scss,md}": "prettier --write"
+    },
+    "postcss": {
+        "plugins": {
+            "tailwindcss": {},
+            "autoprefixer": {}
+        }
     }
 }
