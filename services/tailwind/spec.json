@@ -1,0 +1,8 @@
+{
+    "name": "tailwind",
+    "disabled": false,
+    "public": true,
+    "env": ["browser"],
+    "assets": [{ "file": "styles.css", "type": "text/css" }],
+    "config": {}
+}
