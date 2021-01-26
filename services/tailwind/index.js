@@ -3,6 +3,16 @@ I.boot = async function boot(name, resid, query, headers, config) {
     let _doc = null; // This is the complete response object .. which is a constant
     // for a given instantiation of the service.
 
+    I.dom("tailwind/css", {
+        op: "set",
+        tag: "link",
+        attrs: {
+            rel: "stylesheet",
+            href: "/_codebase/named/tailwind/assets/styles.css",
+        },
+        childOf: "head",
+    });
+
     async function getDocResponse() {
         if (!_doc) {
             // Do it only once and on demand so we don't do unnecessary network fetches
