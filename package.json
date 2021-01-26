@@ -4,6 +4,9 @@
     "description": "An experiment in using REST principles within a server.",
     "main": "src/server.js",
     "dependencies": {
+        "@tailwindcss/forms": "^0.2.1",
+        "@tailwindcss/line-clamp": "^0.2.0",
+        "@tailwindcss/typography": "^0.4.0",
         "autoprefixer": "^10.2.3",
         "aws-sdk": "^2.641.0",
         "bulma": "^0.8.2",
