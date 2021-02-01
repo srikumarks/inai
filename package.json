@@ -27,7 +27,7 @@
         "sqlite3": "^4.1.1",
         "swagger-ui": "^3.40.0",
         "tailwindcss": "^2.0.2",
-        "tedious": "9.2.3",
+        "tedious": "^6.6.5",
         "winston": "^3.2.1"
     },
     "devDependencies": {
