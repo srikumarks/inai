@@ -1,5 +1,13 @@
 #!/bin/bash
 
+self=$0
+selfdir=$(dirname "$0")
+
+$selfdir/start-codebase-server
+pushd $selfdir/..
+make
+popd
+
 # NOTE: This file contains "secrets". None of these secrets in this file 
 # are critical Imaginea secrets - they're just random numbers - but users
 # of this project are expected to keep their secrets safe.

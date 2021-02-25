@@ -11,6 +11,8 @@
 # and name are not expected to have spaces in them .. the general
 # constraint being they be treated like identifiers in common
 # programming languages.
+shopt -s expand_aliases
+alias shasum=sha1sum
 keyspace=$1
 service=$2
 dir=services/$service

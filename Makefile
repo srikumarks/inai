@@ -2,6 +2,7 @@ $(shell mkdir -p workdir static)
 browserify = npx browserify
 uglifyjs = npx uglifyjs
 db := redis-cli -p 6380
+shasum := sha1sum
 services := $(shell cat boot.json | jq -r '.start[]')
 service_bdeps := $(patsubst %,workdir/%.bdeps,$(services))
 service_targets := $(patsubst %,workdir/%.build,$(services))
@@ -11,6 +12,8 @@ keyspace := $(shell cat boot.json | jq -r '.boot[0].config.keyspace')
 
 
 all: workdir/.createdir services/tailwind/styles.css static/inai_web.js.gz $(services_deployed)
+
+build: workdir/.createdir services/tailwind/styles.css static/inai_web.js.gz $(service_hashes)
 
 services/tailwind/styles.css: services/tailwind/styles-src.css
 	npx postcss services/tailwind/styles-src.css -o services/tailwind/styles.css
@@ -30,7 +33,7 @@ test:
 static/inai_web.js: $(shell $(browserify) --list src/client.js)
 	$(browserify) src/client.js > $@
 
-static/inai_web.js.gz: static/inai_web.js static/css/bulma.css $(services_deployed)
+static/inai_web.js.gz: static/inai_web.js static/css/bulma.css $(service_hashes)
 	$(uglifyjs) static/inai_web.js | gzip - > static/inai_web.js.gz
 
 static/css/bulma.css: sass/styles.scss
@@ -58,7 +61,7 @@ $(service_targets): workdir/%.build: workdir/%.bdeps
 	$(browserify) $(patsubst workdir/%.bdeps,services/%/index.js,$<) > $@
 
 $(service_hashes): workdir/%.hash: workdir/%.build
-	shasum $< | awk '{print $$1}' > $@
+	$(shasum) $< | awk '{print $$1}' > $@
 
 $(services_deployed): workdir/%.deployed: workdir/%.hash services/%/spec.json workdir/_db
 	@echo Deploying $(patsubst workdir/%.hash,%,$<)
