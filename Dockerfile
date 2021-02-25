@@ -9,8 +9,8 @@ WORKDIR /inai
 COPY package*.json yarn.lock boot.json Makefile ./
 COPY scripts ./scripts/
 COPY services ./services/
-COPY static ./static/
 COPY sass ./sass/
+RUN mkdir static
 RUN mkdir workdir
 
 # Relies on DOCKER_BUILDKIT=1 environment variable being set.
