@@ -1,0 +1,14 @@
+#!/bin/bash
+
+REDIS_PORT=6380
+
+if ! redis-cli -p $REDIS_PORT info; then
+        echo Starting redis codebase server ...
+        redis-server services/redis_codebase/redis.conf
+        echo Waiting for codebase server to start ...
+        while ! redis-cli -p $REDIS_PORT info; do
+                sleep 1
+        done
+        echo Codebase server started.
+fi
+
