@@ -10,6 +10,7 @@ COPY package*.json yarn.lock boot.json Makefile ./
 COPY scripts ./scripts/
 COPY services ./services/
 COPY sass ./sass/
+COPY src ./src/
 RUN mkdir static
 RUN mkdir workdir
 
