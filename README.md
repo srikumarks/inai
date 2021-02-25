@@ -50,6 +50,24 @@ applications - both frontend and backend.
 
 ## Getting started
 
+### Quick start using docker
+
+```
+docker run --rm --name inai srikumarks/inai
+```
+
+That should get you an instance going that exposes ports 6380 for the  
+codeserver, 9090 for the admin server and you can launch your app on port 8080  
+which is also exposed.
+
+Read on to find out what you get when you run that container. To add more
+server-side or client-side "services" to the running container, you can make
+more services similar to those in the `services/` directory and deploy them
+using `scripts/deploy.sh`. You'll want to bind the 6380 port of the container
+to the same local port to deploy modules to it. If you're running the container
+on a remote machine, set up an ssh port map to the running container's 6380
+port so you can deploy code.
+
 ### Prerequisites
 
 1. `npm` and `node` installed
