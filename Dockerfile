@@ -7,18 +7,18 @@ RUN apk add redis bash jq
 WORKDIR /inai
 
 COPY package*.json yarn.lock boot.json Makefile ./
-COPY scripts ./scripts/
-COPY services ./services/
-COPY sass ./sass/
-COPY src ./src/
-RUN mkdir static
-RUN mkdir workdir
 
 # Relies on DOCKER_BUILDKIT=1 environment variable being set.
 # This lets us share the yarn cache between builds.
 RUN --mount=type=cache,target=/root/.yarn YARN_CACHE_FOLDER=/root/.yarn yarn install
 # RUN npm ci --only=production
 
+COPY scripts ./scripts/
+COPY services ./services/
+COPY sass ./sass/
+COPY src ./src/
+RUN mkdir static
+RUN mkdir workdir
 RUN make build
 
 FROM node:15.10.0-alpine3.13 as app

@@ -103,6 +103,12 @@ function onlyLocalhost(fn) {
     };
 }
 
+function fromAnywhere(fn) {
+	return function (req, res, next) {
+		return fn(req, res, next);
+	};
+}
+
 // Starts a separate service that simply pipes all HTTP requests to their
 // respective services without any checks. This operates only on localhost
 // though and is useful to Postman test services.
@@ -191,13 +197,14 @@ function start(mountPoint) {
     let express = require("express");
     const app = express();
     let services = {};
+    let withConstraints = fromAnywhere; // or fromLocalhost
 
     const router = express.Router();
     router.use(express.json({ type: "application/json" }));
     router.use(express.text({ type: "text/plain" }));
     router.post(
         mountPoint,
-        onlyLocalhost(async (req, res) => {
+        withConstraints(async (req, res) => {
             let body = req.body;
             if (!body) {
                 return res
@@ -214,7 +221,11 @@ function start(mountPoint) {
                 return;
             }
 
-            let result = await I.network("ingress", "post", "/", null, null, {
+            // The ingress service itself can be specified in the
+            // "ingress" field, which defaults to "ingress".
+            let ingress = body.ingress || "ingress";
+
+            let result = await I.network(ingress, "post", "/", null, null, {
                 port: body.port,
                 mount: body.mount,
             });
@@ -234,7 +245,7 @@ function start(mountPoint) {
     );
     router.get(
         mountPoint,
-        onlyLocalhost(async (req, res) => {
+        withConstraints(async (req, res) => {
             res.status(200).json({
                 services: Object.keys(services).map((s) => "/" + s),
             });
@@ -242,7 +253,7 @@ function start(mountPoint) {
     );
     router.get(
         mountPoint + ":port",
-        onlyLocalhost(async (req, res) => {
+        withConstraints(async (req, res) => {
             if (services[req.params.port]) {
                 res.status(200).json({ port: +req.params.port, active: true });
             } else {
@@ -252,7 +263,7 @@ function start(mountPoint) {
     );
     router.delete(
         mountPoint + ":port",
-        onlyLocalhost(async (req, res) => {
+        withConstraints(async (req, res) => {
             let port = +req.params.port;
             if (!services[port]) {
                 // The purpose of the 'delete' request is to ensure, at the end,
@@ -286,7 +297,7 @@ function start(mountPoint) {
         );
         console.log("---");
         console.log(
-            'curl -X POST -H "Content-Type: application/json" -d \'{"port":8080,"mount":"/"}\' http://localhost:' +
+            'curl -X POST -H "Content-Type: application/json" -d \'{"port":8080,"mount":"/"}\' http://<host_ip>:' +
                 port +
                 mountPoint
         );
