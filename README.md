@@ -53,36 +53,47 @@ applications - both frontend and backend.
 ### Quick start using docker
 
 ```
-docker run --rm --name inai srikumarks/inai
+docker run -d --rm --name inai srikumarks/inai
 ```
 
-That should get you an instance going that exposes ports 6380 for the  
-codeserver, 9090 for the admin server and you can launch your app on port 8080  
-which is also exposed.
+That should get you an instance going that exposes ports 6380 for the
+codeserver, 9090 for the admin server and you can launch your app on port 8080
+which is also exposed. Check `docker logs -f inai` for the `curl` command to
+use to start the ingress service on port 8080.
 
-Read on to find out what you get when you run that container. To add more
+If you want to build the container yourself, you can do the following after
+cloning the repository and cd-ing into the cloned folder -
+
+```
+docker buildx build -t <imagename> .
+```
+
+Read on below to find out what you get when you run that container. To add more
 server-side or client-side "services" to the running container, you can make
 more services similar to those in the `services/` directory and deploy them
-using `scripts/deploy.sh`. You'll want to bind the 6380 port of the container
-to the same local port to deploy modules to it. If you're running the container
-on a remote machine, set up an ssh port map to the running container's 6380
-port so you can deploy code.
+using `scripts/deploy.sh <keyspace> <servicename>`. You'll want to bind the
+6380 port of the container to the same local port to deploy modules to it. If
+you're running the container on a remote machine, set up an ssh port map to the
+running container's 6380 port so you can deploy code. You can do that using -
+
+```
+ssh -N -L 6380:<container-ip>:6380 <machine-ip>
+```
 
 ### Prerequisites
 
-1. `npm` and `node` installed
+1. `npm` and `node` and `yarn` are installed
 2. [jq](https://stedolan.github.io/jq/) for build scripts
 3. `redis-cli` and `redis-server` available on the command line
-4. `browserify` available on the command line.
 
 ### Setup
 
 1. Install the prerequisites.
 2. Clone the repository.
-3. `npm install` to get all the dependencies.
+3. `yarn install` to get all the dependencies.
 4. `make` to build everything and "deploy" it to a local redis instance.
-5. Ensure your own ids and secrets are reflected in the `start` script.
-6. `./start` to start the server.
+5. Ensure your own ids and secrets are reflected in the `./scripts/start` script.
+6. `./scripts/start` to start the server.
 
 That will get you a sample application which supports google authenticated
 login .. to do absolutely nothing interesting except if you're a software
