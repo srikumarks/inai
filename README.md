@@ -59,7 +59,9 @@ docker run -d --rm --name inai srikumarks/inai
 That should get you an instance going that exposes ports 6380 for the
 codeserver, 9090 for the admin server and you can launch your app on port 8080
 which is also exposed. Check `docker logs -f inai` for the `curl` command to
-use to start the ingress service on port 8080.
+use to start the ingress service on port 8080. You can visit
+`http://<container-ip>:8080/app` after you launch the service on port 8080 to
+see the silly sample `app` service.
 
 If you want to build the container yourself, you can do the following after
 cloning the repository and cd-ing into the cloned folder -
