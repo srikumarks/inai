@@ -73,10 +73,17 @@ docker buildx build -t <imagename> .
 Read on below to find out what you get when you run that container. To add more
 server-side or client-side "services" to the running container, you can make
 more services similar to those in the `services/` directory and deploy them
-using `scripts/deploy.sh <keyspace> <servicename>`. You'll want to bind the
-6380 port of the container to the same local port to deploy modules to it. If
-you're running the container on a remote machine, set up an ssh port map to the
-running container's 6380 port so you can deploy code. You can do that using -
+using -
+
+```
+scripts/deploy.sh <keyspace> <servicename>
+```
+
+Currently, `<keyspace>` is set to `/inai/codebase/` in the `boot.json` file. 
+You'll want to bind the 6380 port of the container to the same local port to deploy
+modules to it. If you're running the container on a remote machine, set up an ssh
+port map to the running container's 6380 port so you can deploy code. You can do
+that using -
 
 ```
 ssh -N -L 6380:<container-ip>:6380 <machine-ip>
