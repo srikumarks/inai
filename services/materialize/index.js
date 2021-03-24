@@ -15,6 +15,7 @@ I.boot = function (name, resid, query, headers, config) {
         attrs: {
             rel: "stylesheet",
             href: "/_codebase/named/materialize/assets/styles.css",
+		media: "screen,projection"
         },
         childOf: "head",
     });
