@@ -41,6 +41,7 @@
         "loc",
         "notifications",
         "swagger_ui",
-        "tailwind"
+        "tailwind",
+	"materialize"
     ]
 }

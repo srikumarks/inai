@@ -1,0 +1,10 @@
+{
+    "name": "materialize",
+    "disabled": false,
+    "public": true,
+    "env": ["browser"],
+    "assets": [
+        { "file": "styles.css", "type": "text/css" },
+        { "file": "script.js", "type": "text/javascript" }
+    ]
+}
