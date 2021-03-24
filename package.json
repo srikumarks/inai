@@ -33,10 +33,10 @@
     },
     "devDependencies": {
         "browserify": "^16.5.0",
-        "husky": "^5.1.1",
         "lint-staged": ">=10",
         "node-sass": "^4.14.0",
         "prettier": "^2.2.1",
+        "simple-git-hooks": ">=2.0.3",
         "uglify-es": "^3.3.9",
         "webpack": "^4.41.2",
         "webpack-cli": "^3.3.10"
@@ -63,11 +63,6 @@
         "url": "https://github.com/Imaginea/inai/issues"
     },
     "homepage": "https://github.com/Imaginea/inai#readme",
-    "husky": {
-        "hooks": {
-            "pre-commit": "lint-staged"
-        }
-    },
     "lint-staged": {
         "*.{js,json,scss,md}": "prettier --write"
     },
@@ -76,5 +71,8 @@
             "tailwindcss": {},
             "autoprefixer": {}
         }
+    },
+    "simple-git-hooks": {
+        "pre-commit": "npx lint-staged"
     }
 }
