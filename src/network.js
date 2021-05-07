@@ -7,6 +7,8 @@ const isBrowser = new Function(
     "try {return this===window;}catch(e){return false;}"
 )();
 
+const inaiRequire = isNodeJS ? global.require : null;
+
 console.log(
     "inai: env detected",
     "isNodeJS=" + isNodeJS,
@@ -58,7 +60,7 @@ function createNode(options) {
     let I = {
         atomic: atomic,
         network: network,
-        require: require,
+        require: inaiRequire,
         route: basicRouter,
     };
     let I_base = I;

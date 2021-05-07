@@ -1,6 +1,7 @@
 $(shell mkdir -p workdir static)
 browserify = npx browserify
 uglifyjs = npx uglifyjs
+minify = --minify
 db := redis-cli -p 6380
 shasum := sha1sum
 services := $(shell cat boot.json | jq -r '.start[]')
@@ -31,10 +32,12 @@ test:
 	@echo keyspace = $(keyspace)
 
 static/inai_web.js: $(shell $(browserify) --list src/client.js)
-	$(browserify) src/client.js > $@
+	npx esbuild src/client.js $(minify) --bundle --outfile=$@
+#	$(browserify) src/client.js > $@
 
 static/inai_web.js.gz: static/inai_web.js static/css/bulma.css $(service_hashes)
-	$(uglifyjs) static/inai_web.js | gzip - > static/inai_web.js.gz
+	gzip -f -k static/inai_web.js
+# 	$(uglifyjs) static/inai_web.js | gzip - > static/inai_web.js.gz
 
 static/css/bulma.css: sass/styles.scss
 	npm run css-build
@@ -58,7 +61,8 @@ $(service_bdeps): workdir/%.bdeps: services/%/index.js
 	echo $@ : `$(browserify) --list $<` > $@
 
 $(service_targets): workdir/%.build: workdir/%.bdeps
-	$(browserify) $(patsubst workdir/%.bdeps,services/%/index.js,$<) > $@
+	npx esbuild $(patsubst workdir/%.bdeps,services/%/index.js,$<) --platform=$(shell jq -r '{"server":"node","browser":"browser"}[.env[0]]' $(patsubst workdir/%.bdeps,services/%/spec.json,$<)) --bundle $(minify) --outfile=$@
+#	$(browserify) $(patsubst workdir/%.bdeps,services/%/index.js,$<) > $@
 
 $(service_hashes): workdir/%.hash: workdir/%.build
 	$(shasum) $< | awk '{print $$1}' > $@
